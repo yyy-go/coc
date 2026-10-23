@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COC小助手</title>
+<style>
+  :root{
+    /* 主色 月华 / 辅助 东方既白 / 强调 玉色 / 强调 霞绯 */
+    --bg:#E0FFFF; --bg-deep:#D6F4FB;
+    --panel:#F9FDFF; --panel2:#E6F2FF; --panel3:#F0F8FF;
+    --line:#CFE6ED; --line-soft:#E3F1F6;
+    --ink:#14313B; --dim:#5B7885; --faint:#89A5AF;
+    --amber:#FF6B6B; --amber-deep:#EE5A5A; --amber-dim:#FFC9C9;
+    --ok:#2E8B6E; --crit:#C08A2E; --bad:#D94A4A; --fumble:#A32E2E; --info:#2A7A94;
+    --kp:#1F5563; --flee:#3D8FB0; --pursue:#96643F;
+    --serif:"Noto Serif SC","Songti SC",SimSun,serif;
+    --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --r-lg:16px; --r-md:12px; --r-sm:9px;
+    --shadow-1:0 1px 2px rgba(20,49,59,.05),0 12px 28px -24px rgba(20,49,59,.4);
+    --shadow-2:0 2px 6px rgba(20,49,59,.06),0 24px 50px -30px rgba(20,49,59,.45);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;min-height:100vh;color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;
+    background:
+      radial-gradient(1100px 620px at 10% -14%,rgba(255,255,255,.92),transparent 62%),
+      radial-gradient(900px 520px at 106% 6%,rgba(230,242,255,.95),transparent 60%),
+      linear-gradient(180deg,#E9FBFF 0%,#E0FFFF 44%,#EBF8FD 100%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  ::selection{background:rgba(255,107,107,.22)}
+  header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--line-soft);background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(240,248,255,.42));backdrop-filter:blur(12px)}
+  header h1{position:relative;font-family:var(--serif);font-size:19px;margin:0 16px 0 0;padding-left:14px;color:var(--kp);letter-spacing:.16em;font-weight:700;line-height:1.2}
+  header h1::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:4px;height:22px;border-radius:4px;background:linear-gradient(180deg,var(--amber),#FFBDBD)}
+  .spacer{flex:1}
+  header .hacts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-left:auto;flex:1 1 auto}
+  header button{height:30px;padding:0 11px;font-size:12px;background:rgba(255,255,255,.62);color:var(--dim);border-color:rgba(207,230,237,.85);box-shadow:none}
+  header button:hover{background:#fff;color:var(--kp);border-color:#B6DCE7}
+  header button.danger{color:var(--bad)}
+  nav{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:rgba(255,255,255,.52);backdrop-filter:blur(8px)}
+  .tab-btn{position:relative;height:46px;padding:0 15px;background:none;border:none;border-radius:0;color:var(--dim);font-size:13.5px;letter-spacing:.02em;cursor:pointer}
+  .tab-btn:hover{background:none;border:none;box-shadow:none;transform:none;color:var(--kp)}
+  .tab-btn.on{background:none;border:none;box-shadow:none;color:var(--kp);font-weight:600}
+  .tab-btn.on::after{content:'';position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--amber)}
+  main{padding:20px 22px 270px;max-width:1200px;margin:0 auto}
+  section{display:none}
+  section.on{display:block;animation:sectionIn .22s ease both}
+  @keyframes sectionIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .panel{position:relative;background:linear-gradient(180deg,#FFFFFF 0%,#FBFEFF 100%);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow-1)}
+  .panel h3{display:flex;align-items:center;gap:9px;margin:0 0 14px;font-family:var(--serif);color:var(--kp);font-size:15.5px;letter-spacing:.06em;font-weight:700}
+  .panel h3::before{content:'';flex:none;width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--kp),#7FB8C7)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;min-width:0}
+  .row > *{flex-shrink:0}
+  .row > .muted{flex-shrink:1;min-width:0;overflow-wrap:anywhere}
+  input,select,textarea{font-family:var(--sans);font-size:13px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);transition:border-color .15s,box-shadow .15s,background .15s}
+  input,select{height:34px;padding:0 10px}
+  select{padding-right:28px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235B7885' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+  textarea{width:100%;min-height:112px;padding:10px 12px;line-height:1.65;border-radius:var(--r-md);resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#8FCCDC;box-shadow:0 0 0 3px rgba(42,122,148,.12)}
+  input[type=checkbox]{width:auto;height:auto;padding:0;accent-color:var(--amber);vertical-align:-2px}
+  button{height:34px;padding:0 14px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm);cursor:pointer;font-size:13px;font-family:var(--sans);box-shadow:0 1px 2px rgba(20,49,59,.04);transition:background .15s,border-color .15s,box-shadow .18s,transform .12s,color .15s}
+  button:hover{background:#fff;border-color:#A9D3DF;transform:translateY(-1px);box-shadow:0 8px 18px -12px rgba(20,49,59,.5)}
+  button:active{transform:translateY(0) scale(.985);box-shadow:0 1px 2px rgba(20,49,59,.05)}
+  button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+  button:focus-visible{outline:2px solid rgba(255,107,107,.5);outline-offset:2px}
+  button.primary{background:linear-gradient(180deg,#FF8080,#FF6B6B);border-color:#F05D5D;color:#fff;font-weight:700;box-shadow:0 6px 16px -8px rgba(255,107,107,.85)}
+  button.primary:hover{background:linear-gradient(180deg,#FF8C8C,#F96060);border-color:#EC5555;box-shadow:0 10px 22px -10px rgba(255,107,107,.9)}
+  button.danger{color:var(--bad);border-color:#F1C9C9;background:#FFF9F9}
+  button.danger:hover{background:#FFF1F1;border-color:#E9AFAF}
+  button.mini{height:26px;padding:0 9px;font-size:12px;border-radius:7px}
+  .muted{color:var(--dim);font-size:12px;line-height:1.7}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;letter-spacing:.04em;background:var(--panel3);border:1px solid var(--line);color:var(--dim)}
+  .tag.pc{color:var(--ok);border-color:rgba(46,139,110,.35);background:rgba(46,139,110,.06)}
+  .tag.npc{color:var(--pursue);border-color:rgba(150,100,63,.35);background:rgba(150,100,63,.06)}
+  /* 人物卡 */
+  .char-card{background:#fff;border:1px solid var(--line);border-left:4px solid var(--c,#888);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow-1);transition:box-shadow .2s,border-color .2s}
+  .char-card:hover{box-shadow:var(--shadow-2)}
+  .char-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .char-head b{font-size:17px;font-family:var(--serif);letter-spacing:.04em}
+  .statline{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+  .stat{background:var(--panel3);border:1px solid var(--line-soft);border-radius:7px;padding:3px 9px;font-size:12px;line-height:1.5}
+  .stat b{color:var(--kp)}
+  .vit{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:9px}
+  .vit label{font-size:12px;color:var(--dim)}
+  .vit input{width:54px;height:28px;text-align:center;padding:0 4px}
+  .skills{display:flex;gap:5px;flex-wrap:wrap}
+  .sk{background:#FAFDFF;border:1px solid var(--line-soft);border-radius:6px;padding:2px 8px;font-size:11.5px;color:var(--dim)}
+  .sk b{color:var(--kp);font-weight:600}
+  /* 先攻 */
+  .init-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 13px;font-size:12.5px;color:var(--dim)}
+  .chip.cur{background:linear-gradient(180deg,#27697A,#1F5563);color:#fff;border-color:#1F5563;font-weight:700;box-shadow:0 8px 18px -9px rgba(31,85,99,.75)}
+  .chip.done{border-style:dashed;background:#F5FBFD;color:var(--faint)}
+  .chip .dexs{font-size:11px;opacity:.78;margin-left:5px}
+  /* 等待态占位 */
+  #combat-wait,#chase-wait{text-align:center;border-style:dashed;background:rgba(240,248,255,.5);box-shadow:none;padding:30px 20px;letter-spacing:.04em}
+  /* 日志 */
+  #log-view{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px;max-height:580px;overflow-y:auto;box-shadow:var(--shadow-1)}
+  .lg{margin:0 0 12px;padding:2px 0 2px 12px;border-left:3px solid var(--c,#aab);color:var(--c,var(--ink));line-height:1.7}
+  .lg:last-child{margin-bottom:0}
+  .lg .t{color:var(--faint);font-size:10.5px;margin-right:8px;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .lg .who{font-weight:700;letter-spacing:.02em}
+  .lg.san{border-left-color:var(--bad)}
+  .lg.combat{border-left-color:var(--amber)}
+  .lg.chase{border-left-color:var(--flee)}
+  .lg.round{border-left:none;text-align:center;color:var(--kp);font-family:var(--serif);font-size:12.5px;letter-spacing:.16em;padding-left:0;margin:20px 0}
+  /* 同一角色整段文字统一用角色色，语义色只保留粗细 */
+  .lg .dice,.lg .lv-crit,.lg .lv-ok,.lg .lv-bad,.lg .lv-fum,.lg .rp{color:inherit}
+  .lg .lv-crit{font-weight:700}
+  .lg .lv-fum{font-weight:700}
+  .lg .rp{font-style:italic}
+  /* 追逐赛道 */
+  #chase-track{position:relative;height:118px;background:linear-gradient(180deg,#F8FDFF,#E4F5FB);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:14px 0;box-shadow:inset 0 1px 0 #fff}
+  .lane-line{position:absolute;left:0;right:0;top:70px;border-top:2px dashed #A9CFDA}
+  .finish{position:absolute;right:0;top:0;bottom:0;width:26px;background:repeating-linear-gradient(45deg,#B9DDE8 0 6px,#F0F8FF 6px 12px);border-left:2px solid var(--kp)}
+  .runner{position:absolute;top:52px;transform:translateX(-50%);font-size:26px;transition:left .6s cubic-bezier(.3,.8,.3,1);text-align:center;line-height:1.1;filter:drop-shadow(0 3px 5px rgba(20,49,59,.24))}
+  .runner .nm{font-size:10.5px;color:inherit;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:6px;padding:1px 5px;white-space:nowrap}
+  .runner.fleeing{top:14px}
+  .runner.pursuer{top:74px}
+  .hazard{position:absolute;bottom:5px;transform:translateX(-50%);font-size:17px;cursor:pointer;transition:left .6s cubic-bezier(.3,.8,.3,1)}
+  .hz-label{font-size:10px;color:var(--dim);display:block;text-align:center}
+  #chase-flee-list .stat{border-left:3px solid var(--flee)}
+  #chase-pursue-list .stat{border-left:3px solid var(--pursue)}
+  /* 实时输出 */
+  #live-feed{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(880px,96vw);background:rgba(252,254,255,.9);backdrop-filter:blur(20px) saturate(1.35);border:1px solid rgba(191,224,233,.9);border-radius:16px;z-index:40;box-shadow:0 20px 46px -20px rgba(20,49,59,.5),0 2px 8px rgba(20,49,59,.06);font-size:13px;overflow:hidden}
+  .feed-head{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line-soft);background:linear-gradient(90deg,rgba(240,248,255,.92),rgba(230,242,255,.62))}
+  .feed-head b{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;color:var(--kp);font-family:var(--serif);letter-spacing:.08em}
+  .feed-head b::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(46,139,110,.15);animation:feedPulse 2.4s ease-in-out infinite}
+  .feed-body{max-height:180px;overflow-y:auto;padding:10px 14px}
+  @keyframes feedPulse{0%,100%{opacity:.5}50%{opacity:1}}
+  /* 弹窗 */
+  #modal-root{display:none;position:fixed;inset:0;background:rgba(13,38,47,.4);backdrop-filter:blur(6px);z-index:80;align-items:center;justify-content:center;padding:20px}
+  #modal-root.on{display:flex}
+  .modal{background:linear-gradient(180deg,#FFFFFF 0%,#FBFEFF 100%);border:1px solid rgba(255,255,255,.7);border-radius:18px;padding:22px 22px 18px;max-width:520px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 32px 70px -30px rgba(13,38,47,.65);animation:modalIn .22s cubic-bezier(.2,.85,.3,1.05) both}
+  @keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+  .modal h3{margin:0 0 16px;font-family:var(--serif);color:var(--kp);font-size:17px;letter-spacing:.06em}
+  .modal .fld{margin-bottom:14px}
+  .fld label{display:block;font-size:11.5px;color:var(--dim);margin-bottom:6px;letter-spacing:.03em}
+  .modal .fld select,.modal .fld input{width:100%}
+  .modal .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+  /* 轻提示：悬浮玻璃卡片 + 图标徽章 + 倒计时进度条 */
+  #toast-root{position:fixed;top:var(--toast-top,14px);left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:9px;align-items:center;pointer-events:none;width:max-content;max-width:min(420px,calc(100vw - 28px))}
+  .toast{position:relative;display:flex;align-items:center;gap:10px;min-height:46px;padding:10px 14px 10px 11px;background:rgba(252,254,255,.93);backdrop-filter:blur(16px) saturate(1.3);border:1px solid rgba(191,224,233,.9);border-radius:14px;box-shadow:0 16px 38px -16px rgba(20,49,59,.42),0 2px 8px rgba(20,49,59,.05);font-size:13px;color:var(--ink);overflow:hidden;pointer-events:none;max-width:100%;opacity:0;transform:translate3d(0,-10px,0) scale(.97);transition:opacity .24s ease,transform .28s cubic-bezier(.2,.85,.3,1.1)}
+  .toast.on{opacity:1;transform:none}
+  .toast.out{opacity:0;transform:translate3d(0,-6px,0) scale(.98)}
+  .toast.ok{background:linear-gradient(180deg,rgba(245,252,248,.96),rgba(233,248,240,.95));border-color:rgba(46,139,110,.36)}
+  .toast.err{background:linear-gradient(180deg,rgba(255,247,247,.96),rgba(255,238,238,.95));border-color:rgba(255,107,107,.42)}
+  .toast-ic{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:rgba(42,122,148,.1);color:var(--info);box-shadow:inset 0 0 0 1px rgba(42,122,148,.14)}
+  .toast-ic svg{width:15px;height:15px;display:block}
+  .toast-msg{flex:1;line-height:1.45;word-break:break-word;padding-right:2px}
+  .toast.ok .toast-ic{background:rgba(46,139,110,.1);color:var(--ok);box-shadow:inset 0 0 0 1px rgba(46,139,110,.16)}
+  .toast.err .toast-ic{background:rgba(255,107,107,.12);color:var(--amber-deep);box-shadow:inset 0 0 0 1px rgba(255,107,107,.2)}
+  .toast-bar{position:absolute;left:0;bottom:0;height:2px;width:100%;transform-origin:left;background:linear-gradient(90deg,var(--info),#9FD3E0);animation:toastBar 2.6s linear forwards}
+  .toast.ok .toast-bar{background:linear-gradient(90deg,var(--ok),#A9DDC9)}
+  .toast.err .toast-bar{background:linear-gradient(90deg,var(--amber),#FFC6C6)}
+  @keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+  /* 折叠说明 */
+  details{margin-bottom:12px}
+  summary{cursor:pointer;color:var(--kp);font-size:12.5px;letter-spacing:.03em;list-style:none;display:inline-flex;align-items:center;gap:6px}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:'';width:0;height:0;border-left:5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .18s}
+  details[open] summary::before{transform:rotate(90deg)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}main{padding:16px 14px 220px}header{padding:12px 14px}nav{padding:0 10px}.tab-btn{padding:0 11px;font-size:13px}#live-feed{bottom:8px;width:calc(100vw - 16px)}.feed-body{max-height:120px}.feed-head .muted{display:none}}
+  /* VS 分隔 */
+  .vs{display:inline-flex;align-items:center;justify-content:center;padding:2px 9px;border-radius:999px;background:rgba(255,107,107,.1);color:var(--amber-deep);font-size:11px;font-weight:700;letter-spacing:.1em}
+  .oc-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+  .oc-side{display:flex;gap:8px;align-items:center;min-width:0}
+  .oc-side select,.oc-side input{flex:1;min-width:0}
+  @media(max-width:760px){.oc-grid{grid-template-columns:1fr;gap:8px}.oc-grid .vs{justify-self:center}}
+  /* 云同步 */
+  .sync-banner{display:none;background:linear-gradient(90deg,#1F5563,#2C7487);color:#fff;text-align:center;padding:6px 12px;font-weight:600;font-size:12.5px;letter-spacing:.08em;box-shadow:inset 0 -1px 0 rgba(255,255,255,.14)}
+  body.player-mode .sync-banner{display:block}
+  /* 玩家模式：只隐藏 KP 专属控件，玩家自己的操作按钮保持可用 */
+  body.player-mode .kp-only{display:none!important}
+  body.player-mode .pc-readonly input,body.player-mode .pc-readonly select{pointer-events:none;opacity:.8}
+  /* 滚动条 */
+  #log-view::-webkit-scrollbar,.feed-body::-webkit-scrollbar,.modal::-webkit-scrollbar{width:9px}
+  #log-view::-webkit-scrollbar-thumb,.feed-body::-webkit-scrollbar-thumb,.modal::-webkit-scrollbar-thumb{background:#CFE6ED;border-radius:9px;border:2px solid transparent;background-clip:padding-box}
+  #log-view::-webkit-scrollbar-thumb:hover,.feed-body::-webkit-scrollbar-thumb:hover{background:#B7DCE7;background-clip:padding-box}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>COC小助手</h1>
+  <div class="hacts">
+    <button class="kp-only" onclick="exportDoc()">📄 导出记录(.doc)</button>
+    <button onclick="exportTxt()">📋 复制文本</button>
+    <button class="kp-only" onclick="exportSave()">💾 导出存档</button>
+    <button class="kp-only" onclick="document.getElementById('save-file').click()">📂 导入存档</button>
+    <input type="file" id="save-file" accept=".json" style="display:none" onchange="importSaveFile(this)">
+    <button class="danger kp-only" onclick="clearAll()">🗑 清空</button>
+  </div>
+</header>
+<nav>
+  <button class="tab-btn on" data-tab="chars" onclick="switchTab('chars')">🪪 人物卡</button>
+  <button class="tab-btn" data-tab="check" onclick="switchTab('check')">🎲 快速判定</button>
+  <button class="tab-btn" data-tab="combat" onclick="switchTab('combat')">⚔ 战斗轮</button>
+  <button class="tab-btn" data-tab="chase" onclick="switchTab('chase')">🏃 追逐轮</button>
+  <button class="tab-btn" data-tab="log" onclick="switchTab('log')">📖 日志</button>
+  <button class="tab-btn kp-only" data-tab="text" onclick="switchTab('text')">🎭 文案</button>
+  <button class="tab-btn" data-tab="sync" onclick="switchTab('sync')">☁ 云同步</button>
+</nav>
+<div class="sync-banner" id="sync-banner"></div>
+<main>
+
+<section id="tab-chars" class="on">
+  <div class="panel kp-only" id="import-panel">
+    <h3>导入人物卡</h3>
+    <div class="row" style="margin-bottom:8px">
+      <input id="import-name" placeholder="角色名（可留空自动命名）" style="width:220px">
+      <button onclick="fillSample()">填入示例卡</button>
+    </div>
+    <textarea id="import-text" placeholder="力量50str50敏捷70dex70意志45pow45……斗殴65剑20弓40……"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="importChar('pc')">导入为玩家</button>
+      <button onclick="importChar('npc')">导入为 NPC</button>
+      <span id="parse-report" class="muted"></span>
+    </div>
+    <details style="margin-top:10px"><summary>格式说明</summary>
+      <p class="muted">属性：力量/str、体质/con、体型/siz、敏捷/dex、外貌/app、智力/灵感/int、意志/pow、教育/edu、幸运/运气、理智/san/san值、体力/hp、魔法/mp（缺省时 MP=POW÷5，HP=(体质+体型)÷10，闪避=敏捷÷2，DB 与 MOV 自动推算）。技能名支持常见别名，未识别的片段会在导入后提示。</p>
+    </details>
+  </div>
+  <div id="char-list"></div>
+</section>
+
+<section id="tab-check">
+  <div class="panel">
+    <h3>技能 / 属性检定</h3>
+    <div class="row">
+      <select id="qc-char"></select>
+      <input id="qc-skill" list="dl-qc-skill" placeholder="技能名，可输入搜索" autocomplete="off" style="width:150px">
+      <select id="qc-diff"><option>普通</option><option>困难</option><option>极难</option></select>
+      <select id="qc-dice"><option value="0">无增减骰</option><option value="1">+1 奖励骰</option><option value="2">+2 奖励骰</option><option value="-1">-1 惩罚骰</option><option value="-2">-2 惩罚骰</option></select>
+      <input id="qc-note" placeholder="扮演文字（可选）" style="flex:1;min-width:180px">
+      <button class="primary" onclick="quickCheck()">掷骰</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>理智检定（SAN Check）</h3>
+    <div class="row">
+      <select id="sc-char"></select>
+      <input id="sc-expr" value="1/1D4" style="width:110px" title="成功扣/失败扣">
+      <span class="muted">成功扣/失败扣</span>
+      <input id="sc-note" placeholder="扮演文字（可选）" style="flex:1;min-width:180px">
+      <button class="primary" onclick="quickSan()">检定</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>对抗检定</h3>
+    <div class="oc-grid">
+      <div class="oc-side">
+        <select id="oc-a"></select>
+        <input id="oc-sa" list="dl-oc-sa" placeholder="技能，可搜索" autocomplete="off">
+      </div>
+      <span class="vs">VS</span>
+      <div class="oc-side">
+        <select id="oc-b"></select>
+        <input id="oc-sb" list="dl-oc-sb" placeholder="技能，可搜索" autocomplete="off">
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="oc-note" placeholder="扮演文字（可选）" style="flex:1;min-width:180px">
+      <button class="primary" onclick="quickOpposed()">对抗</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>发言 / 角色扮演</h3>
+    <div class="row">
+      <select id="sp-char-1"></select>
+      <input id="sp-text-1" placeholder="插入一段角色扮演描写……" style="flex:1;min-width:220px">
+      <button onclick="addSpeech(1)">记入日志</button>
+    </div>
+  </div>
+</section>
+
+<section id="tab-combat">
+  <div id="combat-wait" class="panel muted" style="display:none">等待 KP 开战……</div>
+  <div id="combat-setup" class="panel kp-only">
+    <h3>开始战斗轮</h3>
+    <div id="combat-roster" class="row"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" onclick="openStartCombat()">⚔ 开战（按 DEX 排序）</button>
+      <span class="muted">勾选参战者；「已拔枪」的角色先攻 +50。</span>
+    </div>
+  </div>
+  <div id="combat-run" style="display:none">
+    <div class="panel">
+      <div class="row">
+        <h3 style="margin:0" id="combat-round-label">第 1 轮</h3>
+        <span class="spacer"></span>
+        <button class="danger mini kp-only" onclick="endCombat()">结束战斗</button>
+      </div>
+      <div class="init-row" id="init-row"></div>
+      <div id="cur-actor"></div>
+    </div>
+    <div class="panel">
+      <h3>发言 / 角色扮演</h3>
+      <div class="row">
+        <select id="sp-char-2"></select>
+        <input id="sp-text-2" placeholder="行动前后的角色扮演描写……" style="flex:1;min-width:220px">
+        <button onclick="addSpeech(2)">记入日志</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-chase">
+  <div id="chase-wait" class="panel muted" style="display:none">等待 KP 开始追逐……</div>
+  <div id="chase-setup" class="panel kp-only">
+    <h3>追逐轮设置</h3>
+    <div class="grid2">
+      <div>
+        <div class="muted" style="margin-bottom:6px">🏃 逃跑方（蓝）</div>
+        <div id="chase-flee-list"></div>
+      </div>
+      <div>
+        <div class="muted" style="margin-bottom:6px">👹 追逐方（红）</div>
+        <div id="chase-pursue-list"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="muted">赛道长度(格) <input id="chase-len" type="number" value="15" style="width:60px"></label>
+      <label class="muted">逃跑方领先(格) <input id="chase-lead" type="number" value="1" style="width:60px"></label>
+      <button class="primary" onclick="startChase()">🚩 开始追逐</button>
+    </div>
+  </div>
+  <div id="chase-run" style="display:none">
+    <div class="panel">
+      <div class="row">
+        <h3 style="margin:0" id="chase-round-label">追逐 · 第 0 轮</h3>
+        <span class="spacer"></span>
+        <button class="danger mini kp-only" onclick="endChase()">结束追逐</button>
+      </div>
+      <div id="chase-track"></div>
+      <div class="row" id="chase-controls"></div>
+      <details class="kp-only" style="margin-top:10px"><summary>➕ 布置障碍物</summary>
+        <div class="row" style="margin-top:8px">
+          <input id="hz-pos" type="number" placeholder="位置(格)" style="width:90px">
+          <input id="hz-name" placeholder="名称，如 湿滑的台阶" style="width:160px">
+          <select id="hz-skill"></select>
+          <select id="hz-diff"><option>普通</option><option>困难</option><option>极难</option></select>
+          <button onclick="addHazard()">放置</button>
+        </div>
+      </details>
+    </div>
+    <div class="panel">
+      <h3>发言 / 角色扮演</h3>
+      <div class="row">
+        <select id="sp-char-3"></select>
+        <input id="sp-text-3" placeholder="追逐中的呐喊与喘息……" style="flex:1;min-width:220px">
+        <button onclick="addSpeech(3)">记入日志</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-log">
+  <div class="row" style="margin-bottom:10px">
+    <button class="primary kp-only" onclick="exportDoc()">📄 导出记录(.doc)</button>
+    <button onclick="exportTxt()">📋 复制纯文本</button>
+  </div>
+  <div id="log-view"></div>
+</section>
+
+<section id="tab-text" class="kp-only">
+  <div class="panel">
+    <h3>🎭 战斗文案自定义</h3>
+    <p class="muted">留空即使用默认文案。只替换结算的结果句，掷骰、伤害、护甲、SAN 等计算完全不受影响。可用占位符：<b>{攻击者} {目标} {武器} {伤害} {技能} {战技} {攻方等级} {守方等级}</b>（反击文案额外支持 {反击者}）。</p>
+    <div id="text-cfg"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="saveTexts()">保存文案</button>
+      <button onclick="resetTexts()">恢复默认</button>
+      <span id="text-saved" class="muted"></span>
+    </div>
+  </div>
+</section>
+
+<section id="tab-sync">
+  <div class="panel">
+    <h3>☁ 云同步（网团实时共享）</h3>
+    <div id="sync-status" class="muted" style="margin-bottom:10px">未连接。连接后点「复制」把玩家链接发给玩家，玩家打开后选择自己的角色即可。</div>
+    <div class="grid2">
+      <div>
+        <div class="fld" style="margin-bottom:10px"><label>同步线路</label>
+          <select id="sync-line" onchange="syncLineUi()"><option value="mqtt">免注册线路</option><option value="lc">LeanCloud 线路</option></select></div>
+        <div id="lc-fields">
+          <div class="fld" style="margin-bottom:10px"><label>LeanCloud AppID</label><input id="sync-appid" style="width:100%" placeholder="应用凭证页复制"></div>
+          <div class="fld" style="margin-bottom:10px"><label>LeanCloud AppKey</label><input id="sync-appkey" style="width:100%" placeholder="应用凭证页复制"></div>
+          <div class="fld" style="margin-bottom:10px"><label>REST API 服务器地址（国内版必填，形如 https://xxxx.lc-cn-n1-shared.com）</label><input id="sync-server" style="width:100%"></div>
+        </div>
+      </div>
+      <div>
+        <div class="fld" style="margin-bottom:10px"><label>房间号</label>
+          <div class="row"><input id="sync-room" style="width:140px" placeholder="如 ABCD"><button class="mini" onclick="randomRoom()">随机</button></div></div>
+        <div class="fld" style="margin-bottom:10px"><label>我的身份</label>
+          <select id="sync-role" onchange="syncRoleUi()"><option value="kp">KP（可操作全部内容）</option><option value="player">玩家（只看/操作自己的角色）</option></select></div>
+        <div class="fld" id="my-char-field" style="margin-bottom:10px"><label>我操控的角色</label>
+          <div class="row"><select id="sync-mychar" style="flex:1"></select><button class="mini" onclick="applyMyChar(true)">应用</button></div></div>
+        <div class="row">
+          <button class="primary" onclick="syncConnect()">连接</button>
+          <button onclick="syncDisconnect()">断开</button>
+        </div>
+        <div class="fld kp-only" style="margin-top:12px"><label>玩家链接</label>
+          <div class="row"><input id="sync-link" style="flex:1" readonly><button class="mini" onclick="copySyncLink()">复制</button></div></div>
+      </div>
+    </div>
+    <details><summary>使用说明</summary>
+      <p class="muted">· 免注册线路：KP 和玩家填同一个房间号即可，后进房也能同步到当前进度。<br>
+      · LeanCloud 线路：免费注册 leancloud.cn → 创建应用 → 应用凭证，填 AppID / AppKey（国内版再填 REST API 地址），并启用 LiveQuery。<br>
+      · 玩家只能查看和操作自己的角色；开战、推进、结束、导入与配置由 KP 负责。</p>
+    </details>
+  </div>
+</section>
+
+</main>
+<div id="live-feed"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+'use strict';
+/* ================= 基础数据 ================= */
+const STATS = [
+  ['STR','力量','str'],['CON','体质','con'],['SIZ','体型','siz'],['DEX','敏捷','dex'],
+  ['APP','外貌','app'],['INT','智力','灵感','int'],['POW','意志','pow'],['EDU','教育','edu'],
+  ['LUK','幸运','运气'],['SAN','理智','理智值','san值','san'],['HP','体力','hp'],['MP','魔法','mp']
+];
+const SKILLS = [
+  ['会计',['会计']],['人类学',['人类学']],['估价',['估价']],['考古学',['考古学']],
+  ['取悦',['取悦']],['魅惑',['魅惑']],['攀爬',['攀爬']],
+  ['计算机使用',['计算机使用','计算机','电脑']],
+  ['信用评级',['信用评级','信用','信誉']],
+  ['克苏鲁神话',['克苏鲁神话','克苏鲁','cm']],
+  ['乔装',['乔装']],['闪避',['闪避']],
+  ['汽车驾驶',['汽车驾驶','驾驶','汽车']],
+  ['电气维修',['电气维修']],['电子学',['电子学']],['话术',['话术']],
+  ['斗殴',['斗殴','格斗','空手']],['剑',['剑']],['弓',['弓']],
+  ['急救',['急救']],['历史',['历史']],['恐吓',['恐吓']],['跳跃',['跳跃']],
+  ['母语',['母语']],['法律',['法律']],
+  ['图书馆使用',['图书馆使用','图书馆']],
+  ['聆听',['聆听']],['开锁',['开锁','撬锁','锁匠']],
+  ['机械维修',['机械维修']],['医学',['医学']],
+  ['博物学',['博物学','自然学']],['领航',['领航','导航']],['神秘学',['神秘学']],
+  ['重型操作',['操作重型机械','重型机械','重型操作','重型']],
+  ['说服',['说服']],['精神分析',['精神分析']],['心理学',['心理学']],
+  ['骑术',['骑术']],['妙手',['妙手']],['侦查',['侦查','侦察']],['潜行',['潜行']],
+  ['生存',['生存']],['游泳',['游泳']],['投掷',['投掷']],['追踪',['追踪']],
+  ['动物驯养',['动物驯养','驯养']],['潜水',['潜水']],['爆破',['爆破']],
+  ['读唇',['读唇']],['催眠',['催眠']],['炮术',['炮术']],
+  ['手枪',['手枪','左轮']],['步枪/猎枪',['步枪','猎枪']],['霰弹枪',['霰弹枪']],['冲锋枪',['冲锋枪']]
+];
+const WEAPONS = {
+  '徒手':{dmg:'1D3',db:true,ranged:false,impale:false},
+  '小刀':{dmg:'1D4',db:true,ranged:false,impale:true},
+  '棍棒':{dmg:'1D8',db:true,ranged:false,impale:false},
+  '砍刀':{dmg:'1D8',db:true,ranged:false,impale:true},
+  '剑':{dmg:'1D8',db:true,ranged:false,impale:true},
+  '斧头':{dmg:'1D6',db:true,ranged:false,impale:true},
+  '长矛':{dmg:'1D8',db:true,ranged:false,impale:true},
+  '弓':{dmg:'1D8',db:true,ranged:true,impale:true},
+  '手枪':{dmg:'1D10',db:false,ranged:true,impale:true},
+  '左轮手枪':{dmg:'1D10',db:false,ranged:true,impale:true},
+  '步枪':{dmg:'2D6+4',db:false,ranged:true,impale:true},
+  '霰弹枪':{dmg:'4D6',db:false,ranged:true,impale:false},
+  '冲锋枪':{dmg:'1D10+2',db:false,ranged:true,impale:true},
+  '猎象枪':{dmg:'2D6+6',db:false,ranged:true,impale:true}
+};
+const SKILL_WEAPON = {'斗殴':'徒手','剑':'剑','弓':'弓','手枪':'手枪','步枪/猎枪':'步枪','霰弹枪':'霰弹枪','冲锋枪':'冲锋枪'};
+const BOUTS = ['失忆症：忘记进入危险地点后的全部记忆','心理性残障：暂时失明/失聪/肢体瘫痪','暴力倾向：陷入无差别打砸的狂暴','妄想偏执：认定所有人都在针对自己','重要之人：把在场者错认成自己生命中的重要之人','晕厥：当场昏倒','恐慌逃窜：不顾一切逃离现场','歇斯底里：大笑/痛哭/尖叫无法自控','恐惧症：获得一项新的恐惧症','狂躁症：获得一项新的狂躁症'];
+const LEVEL_NAMES = ['大失败','失败','普通成功','困难成功','极难成功','大成功'];
+const PALETTE = ['#0F5E74','#C0392B','#2E8B57','#7D3C98','#B9770E','#2471A3','#C2185B','#4A5E8C','#1F7A6B','#8E5B2E'];
+const NPC_COLOR = '#6B7280';
+const KP_COLOR = '#1F5563';
+// 玩家角色色：前 10 个用手挑色板，超出后按黄金角生成，保证人数再多也不重色
+function pcColorAt(i){
+  if(i < PALETTE.length) return PALETTE[i];
+  const hue = (190 + (i - PALETTE.length + 1) * 137.508) % 360;
+  return `hsl(${hue.toFixed(0)}, 62%, 34%)`;
+}
+function nextPcColor(){
+  const used = new Set(state.chars.filter(c => c.kind === 'pc').map(c => c.color));
+  for(let i = 0; i < 1000; i++){
+    const col = pcColorAt(i);
+    if(!used.has(col)) return col;
+  }
+  return pcColorAt(used.size);
+}
+
+const SAMPLE_CARD = '力量50str50敏捷70dex70意志45pow45体质65con65外貌35app35教育60edu60体型80siz80智力80灵感80int80san45san值45理智45理智值45幸运40运气40mp9魔法9hp14体力14会计5人类学1估价5考古学1取悦15魅惑15攀爬20计算机5计算机使用5电脑5信用10信誉10信用评级10克苏鲁0克苏鲁神话0cm0乔装35闪避55汽车20驾驶20汽车驾驶20电气维修10电子学1话术5斗殴65剑20弓40急救40历史5恐吓15跳跃20母语60法律25图书馆50图书馆使用50聆听65开锁1撬锁1锁匠1机械维修10医学1博物学10自然学10领航10导航10神秘学5重型操作1重型机械1操作重型机械1重型1说服60精神分析1心理学55骑术30妙手10侦查70潜行20生存10游泳20投掷20追踪40动物驯养5潜水1爆破1读唇1催眠1炮术1';
+
+/* ================= 状态与存档 ================= */
+let state = { chars: [], log: [], combat: null, chase: null };
+function save(){ state._ts = Date.now(); try{ localStorage.setItem('coc_tool_v1', JSON.stringify(state)); }catch(e){} syncPush(); }
+function load(){
+  try{ const s = localStorage.getItem('coc_tool_v1'); if(s) state = JSON.parse(s); }catch(e){}
+  if(!state.chars) state.chars = [];
+  if(!state.log) state.log = [];
+  if(!state.texts) state.texts = {};
+  // 统一角色配色：玩家各自不同色，NPC 全部同一个色；旧存档一并迁移
+  let pi = 0;
+  state.chars.forEach(c => { c.color = c.kind === 'npc' ? NPC_COLOR : pcColorAt(pi++); });
+  const colorByName = {};
+  state.chars.forEach(c => { colorByName[c.name] = c.color; });
+  state.log.forEach(e => { if(colorByName[e.actor]) e.color = colorByName[e.actor]; });
+}
+
+/* ================= 战斗文案自定义 ================= */
+const TEXT_DEFS = [
+  { key:'hit', label:'近战命中', tip:'{攻击者} 用{武器}命中 {目标}！伤害 {伤害}（{攻方等级} vs {守方等级}）',
+    ph:'剑光一闪，{攻击者}的{武器}劈中{目标}，血花四溅（{伤害} 点）' },
+  { key:'rangedHit', label:'远程命中', tip:'{攻击者} 的{武器}命中 {目标}！伤害 {伤害}（{攻方等级}）',
+    ph:'枪声炸响，{目标}应声而倒（{伤害} 点）' },
+  { key:'counter', label:'反击成功', tip:'{反击者} 反击成功！反造成伤害 {伤害}（{武器}，{守方等级}）',
+    ph:'{反击者}侧身格开，顺势用{武器}还了一记（{伤害} 点）' },
+  { key:'dodge', label:'闪避成功', tip:'{目标} 闪避成功，攻击落空（{攻方等级} vs {守方等级}）',
+    ph:'{目标}险险避开，{攻击者}的{武器}擦着衣角落空' },
+  { key:'miss', label:'近战失手', tip:'双方皆失手（{攻方等级} vs {守方等级}），无伤害',
+    ph:'两人缠斗一团，谁也没能占到便宜' },
+  { key:'rangedMiss', label:'远程失手', tip:'{攻击者} 射击落空（{攻方等级}）',
+    ph:'{攻击者}扣下扳机，弹丸却不知飞向了哪里' },
+  { key:'maneuverOk', label:'战技成功', tip:'{攻击者} 战技「{战技}」成功！{目标}受影响',
+    ph:'{攻击者}一个假动作骗开空档，「{战技}」得手，{目标}措手不及' },
+  { key:'maneuverFail', label:'战技失败', tip:'{目标} 守住身形，战技「{战技}」失败',
+    ph:'{目标}稳住下盘，{攻击者}的「{战技}」落了个空' }
+];
+function applyText(key, vars, fallback){
+  const tpl = (state.texts || {})[key];
+  if(!tpl) return fallback;
+  let s = tpl;
+  Object.keys(vars).forEach(k => { s = s.split('{' + k + '}').join(String(vars[k] === undefined ? '' : vars[k])); });
+  return esc(s).replace(/\n/g, '<br>');
+}
+function renderTextCfg(){
+  const box = $('text-cfg'); if(!box) return;
+  box.innerHTML = TEXT_DEFS.map(d => `
+    <div class="fld" style="margin-bottom:10px">
+      <label>${d.label}<span class="muted">　默认：${esc(d.tip)}</span></label>
+      <textarea id="tx-${d.key}" rows="2" placeholder="${esc(d.ph)}">${esc((state.texts || {})[d.key] || '')}</textarea>
+    </div>`).join('');
+  const tip = $('text-saved'); if(tip) tip.textContent = '';
+}
+function saveTexts(){
+  const obj = {};
+  TEXT_DEFS.forEach(d => {
+    const v = ($('tx-' + d.key) || {}).value;
+    if(v && v.trim()) obj[d.key] = v.trim();
+  });
+  state.texts = obj;
+  save();
+  const tip = $('text-saved'); if(tip) tip.textContent = '✅ 已保存（' + Object.keys(obj).length + ' 项自定义，玩家端会同步）';
+}
+function resetTexts(){
+  state.texts = {};
+  save(); renderTextCfg();
+  const tip = $('text-saved'); if(tip) tip.textContent = '已恢复默认文案';
+}
+
+/* ================= 工具函数 ================= */
+const $ = id => document.getElementById(id);
+function d(sides){ return 1 + Math.floor(Math.random() * sides); }
+function uid(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function nowTime(){ const t = new Date(); return [t.getHours(),t.getMinutes(),t.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':'); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rollFormula(f){
+  let total = 0; const detail = [];
+  String(f).toUpperCase().split('+').forEach(p=>{
+    p = p.trim();
+    const m = p.match(/^(\d*)D(\d+)$/);
+    if(m){ const n = +(m[1]||1); const rolls = []; for(let i=0;i<n;i++) rolls.push(d(+m[2])); total += rolls.reduce((a,b)=>a+b,0); detail.push('['+rolls.join('+')+']'); }
+    else if(/^-?\d+$/.test(p)) total += +p;
+  });
+  return { total, detail };
+}
+function maxFormula(f){
+  let total = 0;
+  String(f).toUpperCase().split('+').forEach(p=>{
+    p = p.trim(); const m = p.match(/^(\d*)D(\d+)$/);
+    if(m) total += (+(m[1]||1)) * (+m[2]); else if(/^-?\d+$/.test(p)) total += +p;
+  });
+  return total;
+}
+
+/* ================= 骰子核心 ================= */
+// 百分骰：十位骰若干 + 个位骰一个；00+0=100
+function d100(bonus = 0, penalty = 0){
+  let units = d(10); if(units === 10) units = 0;
+  const n = 1 + Math.max(bonus, penalty);
+  const tens = [];
+  for(let i=0;i<n;i++){ let t = d(10); tens.push((t % 10) * 10); }
+  let used;
+  if(bonus > 0) used = Math.min(...tens); else if(penalty > 0) used = Math.max(...tens); else used = tens[0];
+  let roll = used + units;
+  if(roll === 0) roll = 100;
+  return { roll, tens, units, used };
+}
+function levelOf(roll, val){
+  if(roll === 1) return 5;
+  if(roll <= Math.floor(val/5)) return 4;
+  if(roll <= Math.floor(val/2)) return 3;
+  if(roll <= val) return 2;
+  if(roll >= 96 && roll > val) return 0;
+  return 1;
+}
+function lvHtml(lv){
+  const cls = lv===5?'lv-crit':lv===0?'lv-fum':lv>=2?'lv-ok':'lv-bad';
+  return `<span class="${cls}">${LEVEL_NAMES[lv]}</span>`;
+}
+
+/* ================= 卡片解析 ================= */
+function buildAliasIndex(){
+  const flat = [];
+  STATS.forEach(([k, ...as]) => as.forEach(a => flat.push({k, a, stat:true})));
+  SKILLS.forEach(([k, as]) => as.forEach(a => flat.push({k, a, stat:false})));
+  return flat.sort((x,y) => y.a.length - x.a.length);
+}
+function parseCard(text){
+  const flat = buildAliasIndex();
+  const seen = {}; const unknown = []; let i = 0;
+  while(i < text.length){
+    let matched = false;
+    for(const f of flat){
+      const seg = text.slice(i, i + f.a.length);
+      if(seg.toLowerCase() !== f.a.toLowerCase()) continue;
+      const rest = text.slice(i + f.a.length);
+      const m = rest.match(/^\s*[:：]?\s*(-?\d{1,3})/);
+      if(m){
+        if(!(f.k in seen)) seen[f.k] = { value:+m[1], stat:f.stat };
+        i += f.a.length + m[0].length; matched = true; break;
+      }
+      if(!(f.k in seen)){ seen[f.k] = { value:null, stat:f.stat }; i += f.a.length; matched = true; break; }
+    }
+    if(!matched){ unknown.push(text[i]); i++; }
+  }
+  const stats = {}, skills = {};
+  Object.entries(seen).forEach(([k,v])=>{
+    if(v.value === null) return;
+    if(v.stat) stats[k] = v.value; else skills[k] = v.value;
+  });
+  const unknownStr = unknown.join('').replace(/[\s\d:：]/g,'');
+  return { stats, skills, unknownStr };
+}
+function calcDB(str, siz){
+  const t = str + siz;
+  if(t <= 64) return { flat:-2 }; if(t <= 84) return { flat:-1 }; if(t <= 124) return { flat:0 };
+  if(t <= 164) return { dice:1, face:4 }; if(t <= 204) return { dice:1, face:6 };
+  if(t <= 284) return { dice:2, face:6 }; return { dice:3, face:6 };
+}
+function dbText(db){ return db.flat !== undefined ? (db.flat > 0 ? '+'+db.flat : String(db.flat)) : '+'+db.dice+'D'+db.face; }
+function rollDB(db){
+  if(db.flat !== undefined) return { total: db.flat, detail: db.flat };
+  let t = 0; const rolls = [];
+  for(let i=0;i<db.dice;i++){ const r = d(db.face); rolls.push(r); t += r; }
+  return { total:t, detail: rolls.join('+') };
+}
+function maxDB(db){ return db.flat !== undefined ? db.flat : db.dice * db.face; }
+function calcMov(s){
+  const stg = s.STR > s.SIZ, dx = s.DEX > s.SIZ;
+  if(stg && dx) return 9; if(stg || dx) return 8; return 7;
+}
+
+/* ================= 人物卡 ================= */
+// 玩家与 NPC 各自独立编号，避免混在一起（如 调查员1、调查员2、NPC1）
+function autoName(kind){
+  const prefix = kind === 'pc' ? '调查员' : 'NPC';
+  const used = new Set(state.chars.filter(c => c.kind === kind).map(c => c.name));
+  let n = 1;
+  while(used.has(prefix + n)) n++;
+  return prefix + n;
+}
+function importChar(kind){
+  if(!requireKP()) return;
+  const text = $('import-text').value.trim();
+  if(!text){ toastErr('请先粘贴人物卡文本'); return; }
+  const parsed = parseCard(text);
+  const need = ['STR','CON','SIZ','DEX','POW'];
+  const missing = need.filter(k => !(k in parsed.stats));
+  if(missing.length){ toastErr('缺少关键属性：' + missing.join('、') + '（别名如 str/力量 均可）'); return; }
+  const s = parsed.stats;
+  const name = $('import-name').value.trim() || autoName(kind);
+  const hpMax = s.HP !== undefined ? s.HP : Math.floor((s.CON + s.SIZ) / 10);
+  const mpMax = s.MP !== undefined ? s.MP : Math.floor(s.POW / 5);
+  const skills = Object.assign({}, parsed.skills);
+  if(skills['闪避'] === undefined) skills['闪避'] = Math.floor(s.DEX / 2);
+  const ch = {
+    id: uid(), name, kind,
+    color: kind === 'pc' ? nextPcColor() : NPC_COLOR,
+    stats: { STR:s.STR||0, CON:s.CON||0, SIZ:s.SIZ||0, DEX:s.DEX||0, APP:s.APP||0, INT:s.INT||0, POW:s.POW||0, EDU:s.EDU||0, LUK:s.LUK||0 },
+    skills,
+    hp: { cur: hpMax, max: hpMax },
+    san: { cur: s.SAN !== undefined ? s.SAN : s.POW, max: s.POW },
+    mp: { cur: mpMax, max: mpMax },
+    db: calcDB(s.STR, s.SIZ),
+    mov: calcMov(s),
+    cond: {},
+    specials: { armor:0, regen:0, attacksPerRound:1, attacks:[], spells:[] }
+  };
+  state.chars.push(ch);
+  $('import-text').value = ''; $('import-name').value = '';
+  let report = `✅ 已导入「${esc(name)}」：属性 ${Object.keys(ch.stats).length} 项，技能 ${Object.keys(skills).length} 项`;
+  if(parsed.unknownStr) report += `；⚠ 未识别片段：${esc(parsed.unknownStr.slice(0,40))}`;
+  $('parse-report').innerHTML = report;
+  log('系统', '#5C7D8A', `<b>${esc(name)}</b>（${kind==='pc'?'玩家':'NPC'}）加入：HP ${hpMax} / SAN ${ch.san.cur} / DB ${dbText(ch.db)} / MOV ${ch.mov}`, 'info');
+  save(); renderChars(); refreshSelects(); renderCombat(); renderChase();
+  toast(`已导入「${name}」：${kind === 'pc' ? '玩家' : 'NPC'}`, 'ok');
+}
+function deleteChar(id){
+  if(!requireKP()) return;
+  askConfirm('确定删除该角色？', '删除').then(ok => {
+    if(!ok) return;
+    state.chars = state.chars.filter(c => c.id !== id);
+    save(); renderChars(); refreshSelects(); renderCombat(); renderChase();
+    toast('角色已删除', 'ok');
+  });
+}
+function charById(id){ return state.chars.find(c => c.id === id); }
+
+/* ================= 身份与权限 ================= */
+function isPlayer(){ return sync.on && sync.role === 'player'; }
+function myCharId(){
+  if(!syncCfg.room) return '';
+  try{ return sessionStorage.getItem('coc_my_char_' + syncCfg.room) || ''; }catch(e){ return ''; }
+}
+function setMyCharId(id){
+  if(!syncCfg.room) return;
+  try{ sessionStorage.setItem('coc_my_char_' + syncCfg.room, id || ''); }catch(e){}
+}
+function myChar(){ const id = myCharId(); return id ? charById(id) : null; }
+function requireKP(){
+  if(isPlayer()){ toastErr('玩家模式下这项由 KP 操作'); return false; }
+  return true;
+}
+// 玩家只能在自己的回合操作当前角色
+function assertMyTurn(){
+  if(!isPlayer()) return true;
+  const cb = state.combat;
+  if(!cb){ toastErr('当前没有进行中的战斗'); return false; }
+  const cur = charById(cb.order[cb.idx].cid);
+  if(!cur || cur.id !== myCharId()){
+    toastErr('现在不是你的回合' + (cur ? '（轮到 ' + cur.name + '）' : ''));
+    return false;
+  }
+  return true;
+}
+function renderMyCharOptions(){
+  const el = $('sync-mychar'); if(!el) return;
+  const cur = myCharId();
+  const pcs = state.chars.filter(c => c.kind === 'pc');
+  el.innerHTML = pcs.length
+    ? pcs.map(c => `<option value="${c.id}" ${c.id===cur?'selected':''}>${esc(c.name)}</option>`).join('')
+    : '<option value="">（KP 尚未导入玩家角色）</option>';
+}
+function applyMyChar(showToast){
+  const v = $('sync-mychar') ? $('sync-mychar').value : '';
+  if(!v){ toastErr('请选择你的角色（需等 KP 同步人物卡后）'); return; }
+  setMyCharId(v);
+  applyRoleUi();
+  if(showToast) toast('已绑定角色：' + ((charById(v) || {}).name || ''), 'ok');
+}
+function syncRoleUi(){
+  const pl = $('sync-role').value === 'player';
+  if($('my-char-field')) $('my-char-field').style.display = pl ? '' : 'none';
+  renderMyCharOptions();
+}
+function applyRoleUi(){
+  const pl = isPlayer();
+  document.body.classList.toggle('player-mode', pl);
+  const banner = $('sync-banner');
+  if(banner){
+    if(pl) banner.textContent = `🎭 玩家模式 · 房间 ${syncCfg.room || ''} · ${myChar() ? '操控：' + myChar().name : '请选择你的角色'}`;
+    else banner.textContent = '';
+  }
+  if($('my-char-field')) $('my-char-field').style.display = (pl || $('sync-role').value === 'player') ? '' : 'none';
+  placeToastRoot();
+  renderMyCharOptions();
+  renderChars(); renderCombat(); renderChase(); refreshSelects();
+  if(pl) chooseMyChar();
+}
+let charPickOpen = false;
+function chooseMyChar(){
+  if(!isPlayer() || charPickOpen) return;
+  const pcs = state.chars.filter(c => c.kind === 'pc');
+  if(!pcs.length) return;
+  if(myCharId() && charById(myCharId())) return;
+  charPickOpen = true;
+  openModal(`<h3>选择你的角色</h3>
+    <p class="muted" style="margin:0 0 6px">玩家模式下只能查看和操作自己的人物卡。请选择 KP 为你导入的角色。</p>
+    <div class="fld"><label>我的角色</label>
+      <select id="my-char-sel">${pcs.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="btns"><button class="primary" onclick="window.__pickMyChar()">进入游戏</button></div>`);
+  window.__pickMyChar = () => {
+    const v = $('my-char-sel').value;
+    if(!v) return;
+    setMyCharId(v); charPickOpen = false; closeModal(); applyRoleUi();
+    toast('已绑定角色：' + ((charById(v) || {}).name || ''), 'ok');
+  };
+}
+function renameChar(id){
+  if(!requireKP()) return;
+  const c = charById(id);
+  askInput('重命名角色', '新名字', c.name).then(n => {
+    if(n === null) return;
+    if(!n.trim()){ toastErr('名字不能为空'); return; }
+    c.name = n.trim(); save(); renderChars(); refreshSelects(); renderCombat(); renderChase(); renderLog();
+    toast('已重命名为「' + c.name + '」', 'ok');
+  });
+}
+function addCustomSkill(id){
+  if(!requireKP()) return;
+  const c = charById(id);
+  askInput('添加技能', '技能名').then(k => {
+    if(k === null) return;
+    if(!k.trim()){ toastErr('技能名不能为空'); return; }
+    const name = k.trim();
+    askInput('添加技能', name + ' 的值').then(v => {
+      if(v === null) return;
+      c.skills[name] = +v || 0;
+      save(); renderChars(); refreshSelects();
+      toast('已添加技能「' + name + '」' + (c.skills[name] ? '：' + c.skills[name] : ''), 'ok');
+    });
+  });
+}
+function renderChars(){
+  const box = $('char-list');
+  const pl = isPlayer();
+  const list = pl ? state.chars.filter(c => c.id === myCharId()) : state.chars;
+  if(!list.length){
+    box.innerHTML = pl
+      ? `<div class="panel muted">${myCharId() ? '等待 KP 同步你的角色数据……' : '还没有选择角色：请在「☁ 云同步」里选择你要操控的角色，或在弹窗中选择。'}</div>`
+      : '<div class="panel muted">还没有角色。粘贴人物卡文本导入，或点「填入示例卡」试试。</div>';
+    return;
+  }
+  box.innerHTML = list.map(c => {
+    const statHtml = Object.entries(c.stats).map(([k,v]) => `<span class="stat">${STAT_LABEL[k]||k} <b>${v}</b></span>`).join('');
+    const skHtml = Object.entries(c.skills).filter(([k,v]) => v > 0).map(([k,v]) => `<span class="sk">${esc(k)} <b>${v}</b></span>`).join('') || '<span class="muted">无技能</span>';
+    const status = [];
+    if(c.hp.cur === 0) status.push(c.hp.max && c._major ? '濒死' : '昏迷');
+    if(c.san.cur === 0) status.push('永久疯狂');
+    const sp = c.specials || {};
+    const mechs = [];
+    if(sp.armor > 0) mechs.push('护甲' + sp.armor);
+    if(sp.regen > 0) mechs.push('再生' + sp.regen);
+    if((sp.attacksPerRound || 1) > 1) mechs.push('攻击x' + sp.attacksPerRound);
+    if((sp.attacks || []).length) mechs.push('特攻x' + sp.attacks.length);
+    if((sp.spells || []).length) mechs.push('法术x' + sp.spells.length);
+    const cond = c.cond || {};
+    if(cond.prone) status.push('倒地');
+    if(cond.disarmed) status.push('缴械(' + cond.disarmed + ')');
+    if(cond.grappledBy) status.push('被抓住');
+    return `<div class="char-card${pl?' pc-readonly':''}" style="--c:${c.color}">
+      <div class="char-head">
+        <b ${pl?'':`onclick="renameChar('${c.id}')" style="cursor:pointer" title="点击改名"`}>${esc(c.name)}</b>
+        <span class="tag ${c.kind}">${c.kind==='pc'?'玩家':'NPC'}</span>
+        ${status.length?`<span class="tag" style="color:var(--bad);border-color:var(--bad)">${status.join(' / ')}</span>`:''}
+        ${mechs.map(m=>`<span class="tag" style="color:var(--pursue);border-color:var(--pursue)">${m}</span>`).join('')}
+        <span class="spacer"></span>
+        ${pl?'':`<button class="mini" onclick="addCustomSkill('${c.id}')">+自定义技能</button>
+        <button class="mini" onclick="openSpecials('${c.id}')">⚙ 特殊机制</button>
+        <button class="mini danger" onclick="deleteChar('${c.id}')">删除</button>`}
+      </div>
+      <div class="statline">${statHtml}
+        <span class="stat">HP <b><input ${pl?'disabled':''} style="width:34px;background:none;border:none;color:var(--ok);text-align:center;font-weight:700;padding:0" value="${c.hp.cur}" onchange="setVit('${c.id}','hp','cur',this.value)">/${c.hp.max}</b></span>
+        <span class="stat">SAN <b><input ${pl?'disabled':''} style="width:34px;background:none;border:none;color:var(--bad);text-align:center;font-weight:700;padding:0" value="${c.san.cur}" onchange="setVit('${c.id}','san','cur',this.value)">/${c.san.max}</b></span>
+        <span class="stat">MP <b>${c.mp.cur}/${c.mp.max}</b></span>
+        <span class="stat">DB <b>${dbText(c.db)}</b></span>
+        <span class="stat">MOV <b><input ${pl?'disabled':''} style="width:34px;background:none;border:none;color:var(--amber);text-align:center;font-weight:700;padding:0" value="${c.mov}" onchange="setVit('${c.id}','mov',null,this.value)"></b></span>
+      </div>
+      <div class="skills">${skHtml}</div>
+    </div>`;
+  }).join('');
+}
+function setVit(id, key, sub, val){
+  if(isPlayer()){ toastErr('玩家模式下不能直接修改人物卡数值'); renderChars(); return; }
+  const c = charById(id); const v = Math.max(0, +val || 0);
+  if(sub) c[key][sub] = v; else c[key] = v;
+  save(); renderChars();
+}
+const STAT_LABEL = { STR:'力量', CON:'体质', SIZ:'体型', DEX:'敏捷', APP:'外貌', INT:'智力', POW:'意志', EDU:'教育', LUK:'幸运' };
+
+/* ================= 特殊机制配置 ================= */
+function ensureSpecials(c){
+  if(!c.specials) c.specials = { armor:0, regen:0, attacksPerRound:1, attacks:[], spells:[] };
+  if(!c.specials.attacks) c.specials.attacks = [];
+  if(!c.specials.spells) c.specials.spells = [];
+  return c.specials;
+}
+function ensureCond(c){
+  if(!c.cond) c.cond = {};
+  return c.cond;
+}
+function spAtkRow(a){
+  return `<div class="row sp-atk" style="margin-bottom:6px">
+    <input class="sa-name" placeholder="名称，如 触手抽击" value="${esc(a.name||'')}" style="width:130px">
+    <input class="sa-dmg" placeholder="伤害公式，如 2D6+3" value="${esc(a.dmg||'')}" style="width:110px">
+    <input class="sa-san" placeholder="命中附加SAN扣，如 1/1D4（可空）" value="${esc(a.san||'')}" style="flex:1;min-width:150px">
+    <button class="mini danger" onclick="this.parentNode.remove()">删</button></div>`;
+}
+function spSpellRow(a){
+  return `<div class="row sp-spell" style="margin-bottom:6px">
+    <input class="ss-name" placeholder="法术名，如 无形之刃" value="${esc(a.name||'')}" style="width:120px">
+    <input class="ss-mp" type="number" placeholder="MP" value="${a.mp||0}" style="width:56px" title="施放消耗 MP">
+    <input class="ss-san" placeholder="SAN扣 1D4 或 1/1D4" value="${esc(a.san||'')}" style="width:110px" title="固定/公式；写成 成功扣/失败扣 则做理智检定">
+    <input class="ss-dmg" placeholder="伤害公式，如 1D10（可空）" value="${esc(a.dmg||'')}" style="width:110px">
+    <input class="ss-heal" placeholder="治疗公式，如 1D6（可空）" value="${esc(a.heal||'')}" style="width:110px">
+    <input class="ss-desc" placeholder="效果描述（可空）" value="${esc(a.desc||'')}" style="flex:1;min-width:110px">
+    <button class="mini danger" onclick="this.parentNode.remove()">删</button></div>`;
+}
+function openSpecials(id){
+  if(!requireKP()) return;
+  const c = charById(id);
+  const sp = ensureSpecials(c);
+  openModal(`<h3>⚙ 特殊机制 · ${esc(c.name)}</h3>
+    <div class="row" style="margin-bottom:12px">
+      <label class="muted">护甲（受击固定减免）<input id="sp-armor" type="number" value="${sp.armor||0}" style="width:60px;margin-left:4px"></label>
+      <label class="muted">每轮再生 HP<input id="sp-regen" type="number" value="${sp.regen||0}" style="width:60px;margin-left:4px"></label>
+      <label class="muted">每轮攻击次数<input id="sp-apr" type="number" value="${sp.attacksPerRound||1}" style="width:60px;margin-left:4px"></label>
+    </div>
+    <div class="muted" style="margin-bottom:6px">特殊攻击：命中按所选攻击技能掷骰，伤害按下方公式（不加重击穿刺，不加 DB），命中后可自动附加目标理智检定。</div>
+    <div id="sp-atk-list">${(sp.attacks||[]).map(spAtkRow).join('')}</div>
+    <div class="row" style="margin-top:8px"><button class="mini" onclick="document.getElementById('sp-atk-list').insertAdjacentHTML('beforeend', spAtkRow({}))">＋ 添加特殊攻击</button></div>
+    <div class="muted" style="margin:14px 0 6px">法术：施放消耗 MP；SAN 栏写 <code>1D4</code> 为固定扣除，写 <code>1/1D4</code> 则先做理智检定再按成功/失败扣；伤害/治疗公式与效果描述可空。</div>
+    <div id="sp-spell-list">${(sp.spells||[]).map(spSpellRow).join('')}</div>
+    <div class="row" style="margin-top:8px"><button class="mini" onclick="document.getElementById('sp-spell-list').insertAdjacentHTML('beforeend', spSpellRow({}))">＋ 添加法术</button></div>
+    <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="saveSpecials('${c.id}')">保存</button></div>`);
+}
+function saveSpecials(id){
+  const c = charById(id);
+  const sp = ensureSpecials(c);
+  sp.armor = Math.max(0, +$('sp-armor').value || 0);
+  sp.regen = Math.max(0, +$('sp-regen').value || 0);
+  sp.attacksPerRound = Math.max(1, +$('sp-apr').value || 1);
+  sp.attacks = [...document.querySelectorAll('#sp-atk-list .sp-atk')].map(row => ({
+    name: row.querySelector('.sa-name').value.trim() || '特殊攻击',
+    dmg: row.querySelector('.sa-dmg').value.trim() || '1D6',
+    san: row.querySelector('.sa-san').value.trim()
+  }));
+  sp.spells = [...document.querySelectorAll('#sp-spell-list .sp-spell')].map(row => ({
+    name: row.querySelector('.ss-name').value.trim() || '法术',
+    mp: Math.max(0, +row.querySelector('.ss-mp').value || 0),
+    san: row.querySelector('.ss-san').value.trim(),
+    dmg: row.querySelector('.ss-dmg').value.trim(),
+    heal: row.querySelector('.ss-heal').value.trim(),
+    desc: row.querySelector('.ss-desc').value.trim()
+  }));
+  closeModal();
+  log('系统', '#5C7D8A', `<b>${esc(c.name)}</b> 更新特殊机制：护甲 ${sp.armor}｜再生 ${sp.regen}/轮｜每轮攻击 ${sp.attacksPerRound} 次｜特殊攻击 ${sp.attacks.length ? sp.attacks.map(a=>esc(a.name)).join('、') : '无'}｜法术 ${sp.spells.length ? sp.spells.map(a=>esc(a.name)).join('、') : '无'}`, 'info');
+  save(); renderChars();
+}
+function findSpecial(char, weaponKey){
+  if(!weaponKey || !weaponKey.startsWith('✦')) return null;
+  const name = weaponKey.slice(1);
+  return ((char.specials || {}).attacks || []).find(a => a.name === name) || null;
+}
+function regenTick(){
+  state.chars.forEach(c => {
+    const r = (c.specials || {}).regen || 0;
+    if(r > 0 && c.hp.cur > 0 && c.hp.cur < c.hp.max){
+      const before = c.hp.cur;
+      c.hp.cur = Math.min(c.hp.max, c.hp.cur + r);
+      log(c.name, c.color, `♻ 再生 +${c.hp.cur - before} HP → <b class="lv-ok">${c.hp.cur}/${c.hp.max}</b>`, 'info');
+    }
+  });
+}
+
+/* ================= 日志 ================= */
+let feedCollapsed = window.innerWidth < 760;
+function renderFeed(){
+  const f = $('live-feed'); if(!f) return;
+  const items = state.log.slice(-9);
+  f.innerHTML = `<div class="feed-head"><b>实时输出</b><span class="muted">最近 ${items.length} 条 · 完整记录在「日志」标签</span><span class="spacer"></span><button class="mini" onclick="toggleFeed()">${feedCollapsed ? '展开 ▲' : '收起 ▼'}</button></div>
+    <div class="feed-body" style="display:${feedCollapsed ? 'none' : ''}">${items.map(e =>
+      `<p class="lg ${e.cls}" style="--c:${e.color}"><span class="t">${e.t}</span><span class="who">${esc(e.actor)}</span>　${e.html}</p>`).join('') || '<span class="muted">暂无记录</span>'}</div>`;
+  const body = f.querySelector('.feed-body');
+  if(body) body.scrollTop = body.scrollHeight;
+}
+function toggleFeed(){ feedCollapsed = !feedCollapsed; renderFeed(); }
+function log(actor, color, html, cls){
+  state.log.push({ t: nowTime(), actor, color, html, cls: cls || '' });
+  if(state.log.length > 2000) state.log = state.log.slice(-2000);
+  save(); renderLog(); renderFeed();
+}
+function renderLog(){
+  const v = $('log-view');
+  v.innerHTML = state.log.map(e =>
+    `<p class="lg ${e.cls}" style="--c:${e.color}"><span class="t">${e.t}</span><span class="who">${esc(e.actor)}</span>　${e.html}</p>`
+  ).join('') || '<span class="muted">暂无记录。导入角色后开始跑团吧。</span>';
+  v.scrollTop = v.scrollHeight;
+}
+function addSpeech(n){
+  if(isPlayer() && $('sp-char-' + n).value !== myCharId()){ toastErr('只能以自己的角色发言'); return; }
+  const sel = $('sp-char-' + n), txt = $('sp-text-' + n);
+  const text = txt.value.trim(); if(!text) return;
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt.value === 'KP' ? 'KP' : charById(opt.value).name;
+  const color = opt.value === 'KP' ? KP_COLOR : charById(opt.value).color;
+  const html = opt.value === 'KP'
+    ? `<span style="color:${KP_COLOR}">${esc(text)}</span>`
+    : `<span style="color:${color}">“${esc(text)}”</span>`;
+  log(name, color, html, '');
+  txt.value = '';
+}
+function collectLogText(){
+  return state.log.map(e => `[${e.t}] ${e.actor}：${e.html.replace(/<[^>]+>/g,'')}`).join('\n');
+}
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+  return new Promise((res, rej) => {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      ok ? res() : rej(new Error('复制失败'));
+    }catch(e){ rej(e); }
+  });
+}
+function exportTxt(){
+  const text = collectLogText();
+  copyText(text).then(() => toast('已复制到剪贴板', 'ok'), () => {
+    askInput('手动复制', '请复制下面的全部日志', text);
+  });
+}
+function exportDoc(){
+  if(!requireKP()) return;
+  const head = state.chars.map(c =>
+    `<p><b style="color:${c.color}">${esc(c.name)}</b>（${c.kind==='pc'?'玩家':'NPC'}）：HP ${c.hp.cur}/${c.hp.max}，SAN ${c.san.cur}/${c.san.max}，DB ${dbText(c.db)}，MOV ${c.mov}</p>`
+  ).join('');
+  const body = state.log.map(e =>
+    `<p style="margin:2px 0 8px;border-left:3px solid ${e.color};padding-left:8px"><span style="color:#999;font-size:10pt">${e.t}</span> <b style="color:${e.color}">${esc(e.actor)}</b>　${e.html}</p>`
+  ).join('');
+  const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>COC跑团记录</title>
+<style>body{font-family:SimSun,'Songti SC',serif;font-size:11pt;color:#222;background:#fff}h1{font-size:16pt}h2{font-size:13pt;border-bottom:1px solid #ccc}</style>
+</head><body><h1>COC小助手 · 跑团记录</h1><p style="color:#888">导出于 ${new Date().toLocaleString('zh-CN')}</p>
+<h2>出场角色</h2>${head || '<p>（无）</p>'}<h2>过程记录</h2>${body || '<p>（无）</p>'}</body></html>`;
+  const blob = new Blob(['\ufeff', doc], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'COC跑团记录_' + new Date().toISOString().slice(0,10) + '.doc';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ================= 弹窗 ================= */
+function openModal(html){ $('modal-root').innerHTML = `<div class="modal">${html}</div>`; $('modal-root').classList.add('on'); }
+function closeModal(){ $('modal-root').classList.remove('on'); $('modal-root').innerHTML = ''; }
+
+/* ================= 操作反馈 ================= */
+// 顶部轻提示：成功/失败都不打断当前操作
+const TOAST_ICONS = {
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 11v5.5"/><circle cx="12" cy="7.4" r="1.1" fill="currentColor" stroke="none"/></svg>',
+  ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.3L19 6.9"/></svg>',
+  err:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6.8v6.4"/><circle cx="12" cy="17.2" r="1.15" fill="currentColor" stroke="none"/></svg>'
+};
+function toast(msg, type = 'info'){
+  const box = $('toast-root'); if(!box) return;
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span class="toast-ic">${TOAST_ICONS[type] || TOAST_ICONS.info}</span><span class="toast-msg"></span><span class="toast-bar"></span>`;
+  el.querySelector('.toast-msg').textContent = msg;
+  box.appendChild(el);
+  while(box.children.length > 4) box.removeChild(box.firstElementChild);
+  requestAnimationFrame(() => el.classList.add('on'));
+  setTimeout(() => {
+    el.classList.remove('on'); el.classList.add('out');
+    setTimeout(() => el.remove(), 300);
+  }, 2600);
+}
+function toastErr(msg){ toast(msg, 'err'); }
+// 让提示条落在页头/导航之下，避免遮挡标题与工具按钮（窄屏换行时同样自适应）
+function placeToastRoot(){
+  const nav = document.querySelector('nav');
+  const banner = $('sync-banner');
+  let y = nav ? nav.getBoundingClientRect().bottom : 0;
+  if(banner && getComputedStyle(banner).display !== 'none') y = banner.getBoundingClientRect().bottom;
+  document.documentElement.style.setProperty('--toast-top', Math.max(14, Math.round(y + 10)) + 'px');
+}
+window.addEventListener('resize', placeToastRoot);
+let toastPlacePending = false;
+window.addEventListener('scroll', () => {
+  if(toastPlacePending) return;
+  toastPlacePending = true;
+  requestAnimationFrame(() => { toastPlacePending = false; placeToastRoot(); });
+}, { passive: true });
+// 应用内确认框（替代原生 confirm，避免内嵌预览环境里阻塞/异常）
+function askConfirm(msg, okText = '确定'){
+  return new Promise(resolve => {
+    openModal(`<h3>请确认</h3><p style="margin:0 0 4px">${esc(msg)}</p>
+      <div class="btns"><button onclick="window.__modalResolve(false)">取消</button>
+      <button class="primary" onclick="window.__modalResolve(true)">${esc(okText)}</button></div>`);
+    window.__modalResolve = v => { window.__modalResolve = null; closeModal(); resolve(v); };
+  });
+}
+// 应用内输入框（替代原生 prompt）
+function askInput(title, label, def = ''){
+  return new Promise(resolve => {
+    openModal(`<h3>${esc(title)}</h3><div class="fld"><label>${esc(label)}</label><input id="ask-input" value="${esc(def)}"></div>
+      <div class="btns"><button onclick="window.__modalResolve(null)">取消</button>
+      <button class="primary" onclick="window.__modalResolve($('ask-input').value)">确定</button></div>`);
+    window.__modalResolve = v => { window.__modalResolve = null; closeModal(); resolve(v); };
+    const inp = $('ask-input');
+    if(inp){ inp.focus(); inp.select(); inp.onkeydown = e => { if(e.key === 'Enter') window.__modalResolve(inp.value); }; }
+  });
+}
+
+/* ================= 检定引擎 ================= */
+const STAT_KEYS = ['STR','CON','SIZ','DEX','APP','INT','POW','EDU','LUK'];
+function valueOf(char, key){
+  if(STAT_KEYS.includes(key)) return char.stats[key];
+  if(key in char.skills) return char.skills[key];
+  return undefined;
+}
+function skillLabel(key){
+  const st = { STR:'力量', CON:'体质', SIZ:'体型', DEX:'敏捷', APP:'外貌', INT:'智力/灵感', POW:'意志', EDU:'教育', LUK:'幸运' };
+  return st[key] || key;
+}
+/* ---- 可搜索下拉（datalist）---- */
+const COMBAT_SKILLS = ['斗殴','剑','弓','手枪','步枪/猎枪','霰弹枪','冲锋枪','炮术'];
+const WEAPON_SKILL = {'徒手':'斗殴','小刀':'斗殴','棍棒':'斗殴','砍刀':'斗殴','斧头':'斗殴','长矛':'斗殴','剑':'剑','弓':'弓','手枪':'手枪','左轮手枪':'手枪','步枪':'步枪/猎枪','猎象枪':'步枪/猎枪','霰弹枪':'霰弹枪','冲锋枪':'冲锋枪'};
+function setDatalist(inputId, items){
+  const inp = $(inputId); if(!inp) return;
+  let dl = $('dl-' + inputId);
+  if(!dl){ dl = document.createElement('datalist'); dl.id = 'dl-' + inputId; inp.after(dl); }
+  dl.innerHTML = items.map(i => `<option value="${esc(i.v)}">${esc(i.label || '')}</option>`).join('');
+  if(items.length && !items.some(i => i.v === inp.value)) inp.value = items[0].v;
+}
+function allSkillItems(cid){
+  const c = charById(cid); if(!c) return [];
+  return [
+    ...STAT_KEYS.filter(k => c.stats[k] > 0).map(k => ({ v:k, label:skillLabel(k) + ' ' + c.stats[k] })),
+    ...Object.entries(c.skills).filter(([k,v]) => v > 0).sort((a,b) => b[1]-a[1]).map(([k,v]) => ({ v:k, label:k + ' ' + v }))
+  ];
+}
+function combatSkillItems(cid){
+  const c = charById(cid); if(!c) return [];
+  const items = COMBAT_SKILLS.filter(k => valueOf(c,k) !== undefined).map(k => ({ v:k, label:k + ' ' + valueOf(c,k) }));
+  // 自定义技能（非标准技能表里的）通常是怪物特殊攻击，一并列出
+  Object.entries(c.skills).forEach(([k,v]) => {
+    if(v > 0 && !COMBAT_SKILLS.includes(k) && !SKILLS.some(s => s[0] === k)) items.push({ v:k, label:k + ' ' + v });
+  });
+  return items;
+}
+function refreshSkillDatalists(){
+  const qc = $('qc-char') && $('qc-char').value; if(qc && charById(qc)) setDatalist('qc-skill', allSkillItems(qc));
+  const a = $('oc-a') && $('oc-a').value; if(a && charById(a)) setDatalist('oc-sa', allSkillItems(a));
+  const b = $('oc-b') && $('oc-b').value; if(b && charById(b)) setDatalist('oc-sb', allSkillItems(b));
+}
+function doCheck(char, key, opts = {}){
+  const val = valueOf(char, key);
+  if(val === undefined){ toastErr(`${char.name} 没有「${key}」，请先在人物卡里添加（+自定义技能）`); return null; }
+  const req = { '普通':2, '困难':3, '极难':4 }[opts.difficulty || '普通'];
+  const b = opts.bonus || 0, p = opts.penalty || 0;
+  const r = d100(b > 0 ? b : 0, p > 0 ? p : 0);
+  const lv = levelOf(r.roll, val);
+  const pass = lv >= req;
+  const diceInfo = (b || p) ? `（十位骰[${r.tens.join(',')}],取${b>0?'低':'高'}）` : '';
+  const noteHtml = opts.note ? ` <span class="rp">“${esc(opts.note)}”</span>` : '';
+  const reqTxt = req > 2 ? `（需${opts.difficulty}成功）` : '';
+  const resTxt = pass ? (lv >= req ? lvHtml(lv) : lvHtml(lv)) : (lv === 0 ? lvHtml(0) : `${lvHtml(lv)}<span class="lv-bad">→ 未达标</span>`);
+  if(!opts.silent){
+    log(char.name, char.color,
+      `${esc(key)} 检定${reqTxt}　<span class="dice">🎲 ${r.roll}</span> / ${val}${diceInfo} → ${pass ? lvHtml(lv) : resTxt}${noteHtml}`,
+      'combat');
+  }
+  return { pass, lv, roll:r.roll, val };
+}
+function doSanCheck(char, expr, note){
+  const parts = String(expr).split('/');
+  if(parts.length !== 2){ toastErr('格式应为 成功扣/失败扣，如 1/1D6'); return; }
+  const r = d100();
+  const lv = levelOf(r.roll, char.san.cur);
+  const pass = r.roll <= char.san.cur;
+  const lossRes = rollFormula(pass ? parts[0] : parts[1]);
+  char.san.cur = Math.max(0, char.san.cur - lossRes.total);
+  const noteHtml = note ? ` <span class="rp">“${esc(note)}”</span>` : '';
+  let extra = '';
+  if(lossRes.total >= 5){
+    const intRes = doCheck(char, 'INT', { silent:true });
+    if(intRes && !intRes.pass){
+      const bout = d(10);
+      extra = ` ⚠ 单次损失≥5 → 智力检定 🎲${intRes.roll}/${intRes.val} <span class="lv-bad">失败 → 临时疯狂！</span> 症状(1D10=${bout})：<b>${BOUTS[bout-1]}</b>`;
+    } else if(intRes){
+      extra = ` · 单次损失≥5 → 智力检定 🎲${intRes.roll}/${intRes.val} <span class="lv-ok">成功，保持理智</span>`;
+    }
+  }
+  if(char.san.cur === 0) extra += ' <span class="lv-fum">☠ SAN 归零 → 永久疯狂，成为 NPC！</span>';
+  log(char.name, char.color,
+    `<b>理智检定</b>　<span class="dice">🎲 ${r.roll}</span> / ${char.san.max}（当前${pass?'成功':'失败'}）→ 扣 ${pass?parts[0]:parts[1]}=${lossRes.total}${lossRes.detail.length?' '+lossRes.detail.join('+'):''}，SAN 剩 <b class="lv-bad">${char.san.cur}</b>${extra}${noteHtml}`,
+    'san');
+  save(); renderChars(); refreshSelects();
+  return { pass, loss: lossRes.total };
+}
+function opposed(ra, va, rb, vb){
+  if(ra.lv <= 1 && rb.lv <= 1) return 'none';
+  if(ra.lv !== rb.lv) return ra.lv > rb.lv ? 'A' : 'B';
+  if(va !== vb) return va > vb ? 'A' : 'B';
+  if(ra.roll !== rb.roll) return ra.roll < rb.roll ? 'A' : 'B';
+  return 'A';
+}
+function rollDetail(cid, key, opts){
+  const c = charById(cid);
+  const val = valueOf(c, key);
+  const r = d100(opts.bonus > 0 ? opts.bonus : 0, opts.penalty > 0 ? opts.penalty : 0);
+  const lv = levelOf(r.roll, val);
+  return { c, key, val, r, lv };
+}
+function rollHtml(rd, diceInfo=''){
+  return `<span class="dice">🎲 ${rd.r.roll}</span>/${rd.val}${diceInfo} → ${lvHtml(rd.lv)}`;
+}
+
+/* ================= 快速判定 tab ================= */
+function quickCheck(){
+  const cid = $('qc-char').value, key = $('qc-skill').value.trim();
+  if(isPlayer() && cid !== myCharId()){ toastErr('只能检定自己的角色'); return; }
+  if(!charById(cid)){ toastErr('请先导入角色'); return; }
+  if(!key){ toastErr('请填写技能名'); return; }
+  const dice = +$('qc-dice').value;
+  doCheck(charById(cid), key, {
+    difficulty: $('qc-diff').value,
+    bonus: dice > 0 ? dice : 0,
+    penalty: dice < 0 ? -dice : 0,
+    note: $('qc-note').value.trim()
+  });
+}
+function quickSan(){
+  const c = charById($('sc-char').value);
+  if(!c) return;
+  if(isPlayer() && c.id !== myCharId()){ toastErr('只能检定自己的角色'); return; }
+  doSanCheck(c, $('sc-expr').value, $('sc-note').value.trim());
+}
+function quickOpposed(){
+  const a = charById($('oc-a').value), b = charById($('oc-b').value);
+  if(!a || !b || a.id === b.id){ toastErr('请选择两个不同角色'); return; }
+  if(isPlayer() && a.id !== myCharId()){ toastErr('玩家只能以自己的角色发起对抗'); return; }
+  const ka = $('oc-sa').value, kb = $('oc-sb').value;
+  const ra = rollDetail(a.id, ka, {}), rb = rollDetail(b.id, kb, {});
+  const w = opposed({lv:ra.lv, roll:ra.roll}, ra.val, {lv:rb.lv, roll:rb.roll}, rb.val);
+  const note = $('oc-note').value.trim();
+  const noteHtml = note ? ` <span class="rp">“${esc(note)}”</span>` : '';
+  const winner = w==='A' ? a : w==='B' ? b : null;
+  log('对抗', '#2A7A94',
+    `<span style="color:${a.color}">${esc(a.name)} ${esc(ka)} ${rollHtml(ra)}</span>　<span style="color:var(--dim)">VS</span>　<span style="color:${b.color}">${esc(b.name)} ${esc(kb)} ${rollHtml(rb)}</span><br>→ ${w==='none' ? '<span class="lv-bad">双方皆失败，无人胜出</span>' : `<b style="color:${winner.color}">${esc(winner.name)} 胜出</b>`}${noteHtml}`,
+    'combat');
+}
+
+/* ================= 战斗轮 ================= */
+function openStartCombat(){
+  if(!requireKP()) return;
+  const checks = [...document.querySelectorAll('#combat-roster input[data-part]:checked')];
+  if(!checks.length){ toastErr('请至少勾选一名参战者'); return; }
+  const order = checks.map(cb => {
+    const c = charById(cb.dataset.cid);
+    const gun = document.querySelector(`#combat-roster input[data-gun="${c.id}"]`);
+    return { cid: c.id, dex: c.stats.DEX + (gun && gun.checked ? 50 : 0) };
+  }).sort((a,b) => b.dex - a.dex);
+  state.combat = { order, idx:0, round:1, acted:{} };
+  log('KP', KP_COLOR, `—— <b>战斗开始</b> —— 先攻顺序：${order.map(o=>esc(charById(o.cid).name)+'(DEX '+o.dex+')').join(' → ')}`, 'round');
+  save(); renderCombat();
+}
+function endCombat(){
+  if(!requireKP()) return;
+  askConfirm('结束当前战斗？', '结束战斗').then(ok => {
+    if(!ok) return;
+    log('KP', KP_COLOR, '—— 战斗结束 ——', 'round');
+    state.combat = null; save(); renderCombat();
+    toast('战斗已结束，可重新选择参战者', 'ok');
+  });
+}
+function renderCombat(){
+  const setup = $('combat-setup'), run = $('combat-run'), wait = $('combat-wait');
+  if(!state.combat){
+    setup.style.display = ''; run.style.display = 'none';
+    if(wait) wait.style.display = isPlayer() ? '' : 'none';
+    if($('cur-actor')) $('cur-actor').innerHTML = '';
+    $('combat-roster').innerHTML = state.chars.length ? state.chars.map(c =>
+      `<label class="stat" style="cursor:pointer"><input type="checkbox" data-part="1" data-cid="${c.id}"> ${esc(c.name)}
+       <span style="color:var(--dim)">|DEX ${c.stats.DEX}</span>
+       <input type="checkbox" data-gun="${c.id}" title="已拔枪，先攻+50" style="margin-left:4px">🔫</label>`
+    ).join('') : '<span class="muted">先在「人物卡」导入角色。</span>';
+    return;
+  }
+  if(wait) wait.style.display = 'none';
+  const cb = state.combat;
+  setup.style.display = 'none'; run.style.display = '';
+  $('combat-round-label').textContent = `第 ${cb.round} 轮`;
+  $('init-row').innerHTML = cb.order.map((o,i) => {
+    const c = charById(o.cid);
+    const cls = i === cb.idx ? 'cur' : (i < cb.idx ? 'done' : '');
+    return `<span class="chip ${cls}">${esc(c.name)}<span class="dexs">DEX ${o.dex}</span></span>`;
+  }).join('');
+  const cur = charById(cb.order[cb.idx].cid);
+  const pl = isPlayer();
+  const mine = !pl || cur.id === myCharId();
+  if(pl && !cb.order.some(o => o.cid === myCharId())){
+    $('combat-round-label').textContent = `第 ${cb.round} 轮`;
+    $('cur-actor').innerHTML = `<div class="panel muted" style="margin:0">你操控的角色不在本次战斗中，等待 KP 安排。</div>`;
+    renderLog(); return;
+  }
+  if(!mine){
+    $('combat-round-label').textContent = `第 ${cb.round} 轮 · 等待 ${cur.name} 行动`;
+    $('cur-actor').innerHTML = `<div class="char-card" style="--c:${cur.color};margin:0">
+      <div class="char-head"><b>▶ ${esc(cur.name)}</b><span class="tag">等待其行动</span></div>
+      <div class="muted">现在不是你的回合。轮到你的角色时，这里会出现攻击、施法、检定等操作按钮。</div>
+    </div>`;
+    renderLog(); return;
+  }
+  if(pl) $('combat-round-label').textContent = `第 ${cb.round} 轮 · 你的回合`;
+  const apr = (cur.specials && cur.specials.attacksPerRound) || 1;
+  const used = (cb.atkR === cb.round && cb.atkC && cb.atkC[cur.id]) || 0;
+  const cc = ensureCond(cur);
+  const condTags = [cc.prone?'倒地':null, cc.disarmed?('缴械('+cc.disarmed+')'):null, cc.grappledBy?'被抓住':null, cc.aim?'瞄准中':null].filter(Boolean);
+  const spellCount = ((cur.specials||{}).spells||[]).length;
+  let condBtns = '';
+  if(cc.prone) condBtns += `<button onclick="standUp('${cur.id}')">🧍 起身（消耗行动）</button>`;
+  if(cc.disarmed) condBtns += `<button onclick="pickWeapon('${cur.id}')">🖐 捡起武器（消耗行动）</button>`;
+  if(cc.grappledBy) condBtns += `<button onclick="breakGrapple('${cur.id}')">💪 挣脱（力量对抗）</button>`;
+  $('cur-actor').innerHTML = `
+    <div class="char-card" style="--c:${cur.color};margin:0">
+      <div class="char-head"><b>▶ ${esc(cur.name)}</b>
+        <span class="stat">HP <b>${cur.hp.cur}/${cur.hp.max}</b></span>
+        <span class="stat">SAN <b>${cur.san.cur}</b></span>
+        <span class="stat">MP <b>${cur.mp.cur}/${cur.mp.max}</b></span>
+        <span class="stat">DB <b>${dbText(cur.db)}</b></span>
+        <span class="stat" ${used > apr ? 'style="color:var(--pursue)"' : ''}>已攻击 <b>${used}/${apr}</b></span>
+        ${condTags.map(t=>`<span class="tag" style="color:var(--bad);border-color:var(--bad)">${t}</span>`).join('')}
+        <span class="spacer"></span>
+      </div>
+      <div class="row">
+        <button class="primary" onclick="openAttack()">⚔ 攻击</button>
+        <button onclick="openCast()" title="${spellCount?('已配置 '+spellCount+' 个法术'):'尚未配置法术，去「⚙ 特殊机制」添加'}">🔮 施法${spellCount?'（'+spellCount+'）':''}</button>
+        <button onclick="openCombatCheck()">🎲 技能检定</button>
+        <button onclick="openCombatSan()">🧠 理智检定</button>
+        ${condBtns}
+        <span class="spacer"></span>
+        <button onclick="combatNext()">⏭ 结束回合 →</button>
+      </div>
+    </div>`;
+  renderLog();
+}
+function combatNext(){
+  if(!assertMyTurn()) return;
+  const cb = state.combat;
+  cb.acted = {};
+  cb.idx++;
+  if(cb.idx >= cb.order.length){
+    cb.idx = 0; cb.round++;
+    log('KP', KP_COLOR, `—— 第 ${cb.round} 轮开始 ——`, 'round');
+    regenTick();
+  }
+  save(); renderCombat();
+}
+function openCombatCheck(){
+  if(!assertMyTurn()) return;
+  const cb = state.combat;
+  const cur = charById(cb.order[cb.idx].cid);
+  const items = allSkillItems(cur.id);
+  openModal(`<h3>战斗中检定 · ${esc(cur.name)}</h3>
+    <div class="fld"><label>技能 / 属性（可输入搜索）</label>
+      <input id="mc-skill" list="dl-mc-skill" autocomplete="off" value="${items.length ? esc(items[0].v) : ''}">
+      <datalist id="dl-mc-skill">${items.map(i=>`<option value="${esc(i.v)}">${esc(i.label)}</option>`).join('')}</datalist></div>
+    <div class="fld"><label>难度</label><select id="mc-diff"><option>普通</option><option>困难</option><option>极难</option></select></div>
+    <div class="fld"><label>增减骰</label><select id="mc-dice"><option value="0">无</option><option value="1">+1奖励骰</option><option value="2">+2奖励骰</option><option value="-1">-1惩罚骰</option><option value="-2">-2惩罚骰</option></select></div>
+    <div class="fld"><label>扮演文字（可选）</label><input id="mc-note"></div>
+    <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="combatCheckGo()">掷骰</button></div>`);
+}
+function combatCheckGo(){
+  const cb = state.combat;
+  const cur = charById(cb.order[cb.idx].cid);
+  const dice = +$('mc-dice').value;
+  doCheck(cur, $('mc-skill').value.trim(), {
+    difficulty: $('mc-diff').value,
+    bonus: dice > 0 ? dice : 0, penalty: dice < 0 ? -dice : 0,
+    note: $('mc-note').value.trim()
+  });
+  closeModal();
+}
+function openCombatSan(){
+  if(!assertMyTurn()) return;
+  const cb = state.combat;
+  const cur = charById(cb.order[cb.idx].cid);
+  openModal(`<h3>理智检定 · ${esc(cur.name)}</h3>
+    <div class="fld"><label>成功扣/失败扣</label><input id="ms-expr" value="1/1D4"></div>
+    <div class="fld"><label>扮演文字（可选）</label><input id="ms-note"></div>
+    <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="combatSanGo()">掷骰</button></div>`);
+}
+function combatSanGo(){
+  const cb = state.combat;
+  const cur = charById(cb.order[cb.idx].cid);
+  const e = $('ms-expr').value, n = $('ms-note').value.trim();
+  closeModal(); doSanCheck(cur, e, n);
+}
+/* ---- 法术 ---- */
+function openCast(){
+  if(!assertMyTurn()) return;
+  const cb = state.combat;
+  const cur = charById(cb.order[cb.idx].cid);
+  const spells = ((cur.specials || {}).spells) || [];
+  if(!spells.length){ toastErr(cur.name + ' 尚未配置法术。到「⚙ 特殊机制」里添加。'); return; }
+  const targets = cb.order.map(o => charById(o.cid));
+  // 默认选中除自己外的第一个目标，避免误伤自己
+  const defTarget = targets.find(c => c.id !== cur.id) || targets[0];
+  openModal(`<h3>🔮 施法 · ${esc(cur.name)}</h3>
+    <div class="fld"><label>法术</label>
+      <select id="cast-spell">${spells.map((s,i)=>`<option value="${i}">${esc(s.name)}（MP ${s.mp||0}${s.san?'｜SAN '+esc(s.san):''}${s.dmg?'｜伤害 '+esc(s.dmg):''}${s.heal?'｜治疗 '+esc(s.heal):''}）</option>`).join('')}</select></div>
+    <div class="fld"><label>目标（伤害/治疗生效）</label>
+      <select id="cast-target">${targets.map(c=>`<option value="${c.id}" ${c.id===defTarget.id?'selected':''}>${esc(c.name)}（HP ${c.hp.cur}/${c.hp.max}）</option>`).join('')}</select></div>
+    <div class="fld"><label>扮演文字（可选）</label><input id="cast-note"></div>
+    <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="castGo()">施放</button></div>`);
+}
+function castGo(){
+  const cb = state.combat;
+  const cur = charById(cb.order[cb.idx].cid);
+  const sp = (((cur.specials || {}).spells) || [])[+$('cast-spell').value];
+  if(!sp) return;
+  const t = charById($('cast-target').value) || cur;
+  const note = $('cast-note').value.trim();
+  closeModal();
+  const mpCost = Math.max(0, +sp.mp || 0);
+  if(mpCost > cur.mp.cur){ toastErr(cur.name + ' MP 不足（' + cur.mp.cur + '/' + mpCost + '），施法失败'); return; }
+  cur.mp.cur -= mpCost;
+  const parts = [mpCost ? `MP -${mpCost} → ${cur.mp.cur}/${cur.mp.max}` : ''];
+  if(sp.san){
+    const seg = String(sp.san).split('/');
+    let lost = 0;
+    if(seg.length === 2){
+      const r = d100();
+      const pass = r.roll <= cur.san.cur;
+      const lr = rollFormula(pass ? seg[0] : seg[1]);
+      lost = lr.total;
+      parts.push(`SAN检定 🎲${r.roll}/${cur.san.cur} ${pass?'成功':'失败'} → -${lost}`);
+    } else {
+      lost = rollFormula(sp.san).total;
+      parts.push(`SAN -${lost}（固定）`);
+    }
+    cur.san.cur = Math.max(0, cur.san.cur - lost);
+    parts.push(`剩 ${cur.san.cur}/${cur.san.max}`);
+    if(lost >= 5){
+      const intRes = doCheck(cur, 'INT', { silent:true });
+      if(intRes && !intRes.pass) parts.push('⚠ 单次损失≥5 且智力检定失败 → 临时疯狂！');
+    }
+    if(cur.san.cur === 0) parts.push('☠ SAN 归零 → 永久疯狂');
+  }
+  if(sp.dmg){
+    const dr = rollFormula(sp.dmg);
+    parts.push(`${esc(t.name)} 受 ${dr.total} 伤害（${esc(sp.dmg)}，无视护甲）`);
+    applyDamage(t, dr.total, sp.name + '（法术）', { ignoreArmor:true });
+  }
+  if(sp.heal){
+    const hr = rollFormula(sp.heal);
+    const before = t.hp.cur;
+    t.hp.cur = Math.min(t.hp.max, t.hp.cur + hr.total);
+    parts.push(`${esc(t.name)} 恢复 ${t.hp.cur - before} HP → ${t.hp.cur}/${t.hp.max}`);
+  }
+  if(sp.desc) parts.push(esc(sp.desc));
+  noteAttack(cur);
+  log(cur.name, cur.color,
+    `🔮 施放 <b>${esc(sp.name)}</b>${parts.length?'（'+parts.join('｜')+'）':''}${note?` <span class="rp">“${esc(note)}”</span>`:''}`,
+    'combat');
+  save(); renderChars(); renderCombat();
+}
+/* ---- 状态解除 ---- */
+function standUp(id){
+  if(!assertMyTurn()) return;
+  const c = charById(id); const cond = ensureCond(c);
+  delete cond.prone;
+  noteAttack(c);
+  log(c.name, c.color, '🧍 起身，消耗本回合行动', 'combat');
+  save(); renderChars(); renderCombat();
+}
+function pickWeapon(id){
+  if(!assertMyTurn()) return;
+  const c = charById(id); const cond = ensureCond(c);
+  const w = cond.disarmed; delete cond.disarmed;
+  noteAttack(c);
+  log(c.name, c.color, `🖐 捡回「${esc(w||'武器')}」，消耗本回合行动`, 'combat');
+  save(); renderChars(); renderCombat();
+}
+function breakGrapple(id){
+  if(!assertMyTurn()) return;
+  const c = charById(id); const cond = ensureCond(c);
+  const holder = charById(cond.grappledBy);
+  if(!holder){ delete cond.grappledBy; renderCombat(); return; }
+  const ra = rollDetail(c.id, 'STR', {});
+  const rb = rollDetail(holder.id, 'STR', {});
+  const w = opposed({lv:ra.lv, roll:ra.roll}, ra.val, {lv:rb.lv, roll:rb.roll}, rb.val);
+  if(w === 'A'){ delete cond.grappledBy; }
+  log(c.name, c.color,
+    `💪 挣脱力量对抗：${esc(c.name)} ${rollHtml(ra)} vs ${esc(holder.name)} ${rollHtml(rb)}<br>→ ${w==='A'?`<b class="lv-ok">挣脱成功</b>`:'仍被抓住，本回合行动浪费'}`,
+    'combat');
+  save(); renderChars(); renderCombat();
+}
+let pending = null;
+function openAttack(){
+  if(!assertMyTurn()) return;
+  const cb = state.combat;
+  const cur = charById(cb.order[cb.idx].cid);
+  const targets = cb.order.map(o => charById(o.cid)).filter(c => c.id !== cur.id);
+  if(!targets.length){ toastErr('没有可攻击的目标（需至少两名参战者）'); return; }
+  const cItems = combatSkillItems(cur.id);
+  if(!cItems.length){ toastErr(cur.name + ' 没有任何攻击类技能（斗殴/剑/弓/枪械等）'); return; }
+  // NPC 攻击时默认随机选择目标（KP 可手改）
+  let defTarget = targets[0];
+  if(cur.kind === 'npc' && targets.length > 1) defTarget = targets[Math.floor(Math.random() * targets.length)];
+  const spOpts = ((cur.specials || {}).attacks || []).map(a =>
+    `<option value="✦${esc(a.name)}">✦ 特殊 ${esc(a.name)}（${esc(a.dmg)}${a.san ? '·附加SAN' : ''}）</option>`).join('');
+  openModal(`<h3>⚔ 攻击 · ${esc(cur.name)}</h3>
+    <div class="fld"><label>武器 / 特殊攻击（选择后自动带出对应技能，可手改）</label>
+      <input id="atk-weapon" list="dl-atk-weapon" autocomplete="off" value="徒手" oninput="attackWeaponSync()">
+      <datalist id="dl-atk-weapon">${spOpts}${Object.keys(WEAPONS).map(k=>`<option value="${esc(k)}">${WEAPONS[k].ranged?'（远程）':'（近战）'} ${WEAPONS[k].dmg}${WEAPONS[k].db?'+DB':''}</option>`).join('')}</datalist></div>
+    <div class="fld"><label>使用技能（仅攻击类，可输入搜索）</label>
+      <input id="atk-skill" list="dl-atk-skill" autocomplete="off" value="${esc(cItems[0].v)}" oninput="attackSkillSync()">
+      <datalist id="dl-atk-skill">${cItems.map(i=>`<option value="${esc(i.v)}">${esc(i.label)}</option>`).join('')}</datalist></div>
+    <div class="fld"><label>目标（${cur.kind==='npc'?'NPC 已随机选定，可手改':''}）</label>
+      <div class="row"><select id="atk-target" style="flex:1">${targets.map(c=>`<option value="${c.id}" ${c.id===defTarget.id?'selected':''}>${esc(c.name)}（HP ${c.hp.cur}/${c.hp.max}）</option>`).join('')}</select>
+      <button class="mini" onclick="randomAttackTarget()">🎲 随机</button></div></div>
+    <div class="fld"><label>增减骰（狙击、暗处偷袭等 KP 裁定）</label><select id="atk-dice"><option value="0">无</option><option value="1">+1奖励骰</option><option value="2">+2奖励骰</option><option value="-1">-1惩罚骰</option><option value="-2">-2惩罚骰</option></select></div>
+    <div class="fld"><label>战技（COC7 战斗技巧，选「无」为普通攻击）</label>
+      <select id="atk-maneuver">
+        <option value="">无（普通攻击，造成伤害）</option>
+        <option value="精准打击">精准打击（攻击 -1 惩罚骰，命中无视护甲）</option>
+        <option value="穿甲">穿甲（困难成功以上时目标护甲减半）</option>
+        <option value="缴械">缴械（对抗，胜则目标武器脱手）</option>
+        <option value="抓住">抓住（对抗，胜则抓住目标，目标攻击 -1 惩罚骰）</option>
+        <option value="推搡">推搡/击倒（对抗，胜则目标倒地）</option>
+        <option value="绊倒">绊倒（对抗目标敏捷，胜则目标倒地）</option>
+        <option value="瞄准">瞄准（放弃本轮攻击，下轮远程 +1 奖励骰）</option>
+      </select></div>
+    <div class="fld"><label>扮演文字（可选）</label><input id="atk-note"></div>
+    <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="attackNext()">下一步</button></div>`);
+  attackWeaponSync();
+}
+function attackWeaponSync(){
+  // 武器 → 技能自动带出（不锁定，可手改）；输入特殊攻击名自动补 ✦ 前缀
+  const w = $('atk-weapon').value.trim();
+  const cb = state.combat; if(!cb) return;
+  const cur = charById(cb.order[cb.idx].cid);
+  const hit = ((cur.specials || {}).attacks || []).find(a => a.name === w);
+  if(hit){ $('atk-weapon').value = '✦' + hit.name; return; }
+  const s = WEAPON_SKILL[w];
+  if(s) $('atk-skill').value = s;
+}
+function attackSkillSync(){
+  // 技能 → 武器自动带出（不锁定，可手改）
+  const s = $('atk-skill').value.trim();
+  if(SKILL_WEAPON[s]) $('atk-weapon').value = SKILL_WEAPON[s];
+}
+function randomAttackTarget(){
+  const sel = $('atk-target'); if(!sel || !sel.options.length) return;
+  sel.selectedIndex = Math.floor(Math.random() * sel.options.length);
+}
+function attackNext(){
+  const cb = state.combat;
+  const atk = charById(cb.order[cb.idx].cid);
+  const tid = $('atk-target').value;
+  const skill = $('atk-skill').value.trim();
+  const weaponRaw = $('atk-weapon').value.trim();
+  const spHit = findSpecial(atk, weaponRaw) || ((atk.specials || {}).attacks || []).find(a => a.name === weaponRaw);
+  const weapon = spHit ? '✦' + spHit.name : weaponRaw;
+  if(!WEAPONS[weapon] && !spHit){ toastErr('未知武器：' + weaponRaw + '，请从列表选择'); return; }
+  if(valueOf(atk, skill) === undefined){ toastErr(atk.name + ' 没有「' + skill + '」技能，请在人物卡添加或改选其他技能'); return; }
+  const dice = +$('atk-dice').value;
+  const note = $('atk-note').value.trim();
+  const manEl = $('atk-maneuver');
+  const man = manEl ? manEl.value : '';
+  // 被缴械的武器无法使用
+  const cond = ensureCond(atk);
+  if(cond.disarmed && (weaponRaw === cond.disarmed || weapon === cond.disarmed || (spHit && spHit.name === cond.disarmed))){ toastErr(atk.name + ' 的「' + cond.disarmed + '」已被缴械，请先捡起或改用其他武器'); return; }
+  pending = { atkId: atk.id, tid, skill, weapon, dice, note, man };
+  closeModal();
+  if(man === '瞄准'){
+    cond.aim = 1;
+    noteAttack(atk);
+    log(atk.name, atk.color, `🎯 <b>瞄准</b>：本轮放弃攻击，下次远程攻击 +1 奖励骰${note?` <span class="rp">“${esc(note)}”</span>`:''}`, 'combat');
+    save(); renderChars(); renderCombat();
+    return;
+  }
+  const t = charById(tid);
+  if(['缴械','抓住','推搡','绊倒'].includes(man)){
+    const mvOpts = man === '绊倒' ? ['敏捷','闪避','斗殴'] : ['斗殴','闪避'];
+    openModal(`<h3>🤼 战技「${esc(man)}」 · ${esc(t.name)} 如何应对？</h3>
+      <p class="muted">战技为对抗判定，不造成伤害；胜者施加效果。目标本轮已作出反应的话，攻击自动 +1 奖励骰（以多打少）。</p>
+      <div class="fld"><label>目标应对技能</label><select id="mv-def">${mvOpts.map((k,i)=>`<option ${i===0?'selected':''}>${k}</option>`).join('')}</select></div>
+      <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="resolveManeuver()">结算</button></div>`);
+    return;
+  }
+  const w = findSpecial(atk, weapon) ? { ranged:false } : WEAPONS[weapon];
+  if(w.ranged){
+    openModal(`<h3>🎯 远程攻击 · ${esc(t.name)}</h3>
+      <p class="muted">目标是否扑向掩体（掷闪避，成功则攻击者受 1 惩罚骰，且目标放弃本轮行动）？</p>
+      <div class="btns"><button onclick="resolveRanged(false)">否，原地挨打</button><button class="primary" onclick="resolveRanged(true)">是，扑掩体</button></div>`);
+  } else {
+    const fightSkills = ['斗殴','剑','弓'].filter(k => valueOf(t,k) !== undefined && valueOf(t,k) > 0);
+    const best = fightSkills.sort((a,b)=>valueOf(t,b)-valueOf(t,a))[0] || '斗殴';
+    openModal(`<h3>🗡 近战攻击 · ${esc(t.name)} 如何应对？</h3>
+      <div class="fld"><label>应对方式</label>
+        <select id="rsp-mode"><option value="fight">反击（用战斗技能对抗，赢了可反击造成伤害）</option><option value="dodge">闪避（用闪避对抗，赢了免伤）</option></select></div>
+      <div class="fld"><label>反击用技能（仅选反击时生效）</label><select id="rsp-skill">${['斗殴','剑','弓'].map(k=>`<option ${k===best?'selected':''}>${k}</option>`).join('')}</select></div>
+      <div class="fld"><label>反击武器</label><select id="rsp-weapon">${Object.keys(WEAPONS).filter(k=>!WEAPONS[k].ranged).map(k=>`<option ${k==='徒手'?'selected':''}>${k}</option>`).join('')}</select></div>
+      <p class="muted">注：目标本轮已闪避/反击过的话，攻击自动 +1 奖励骰（以多打少）。</p>
+      <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="resolveMelee()">结算</button></div>`);
+  }
+}
+function resolveMelee(){
+  const atk = charById(pending.atkId), t = charById(pending.tid);
+  const mode = $('rsp-mode').value;
+  const dSkill = mode === 'dodge' ? '闪避' : $('rsp-skill').value;
+  const dWeapon = mode === 'fight' ? $('rsp-weapon').value : null;
+  closeModal();
+  const special = findSpecial(atk, pending.weapon);
+  const wName = special ? special.name : pending.weapon;
+  noteAttack(atk);
+  const ac = ensureCond(atk), tc = ensureCond(t);
+  const outnum = state.combat.acted[t.id] === state.combat.round;
+  let penalty = pending.dice < 0 ? -pending.dice : 0;
+  if(pending.man === '精准打击') penalty += 1;
+  if(ac.prone) penalty += 1;
+  if(ac.grappledBy) penalty += 1;
+  const bonus = (pending.dice > 0 ? pending.dice : 0) + (outnum ? 1 : 0);
+  const ra = rollDetail(atk.id, pending.skill, { bonus, penalty });
+  const rd = rollDetail(t.id, dSkill, { penalty: tc.prone ? 1 : 0 });
+  const w = opposed({lv:ra.lv, roll:ra.roll}, ra.val, {lv:rd.lv, roll:rd.roll}, rd.val);
+  state.combat.acted[t.id] = state.combat.round;
+  const noteHtml = pending.note ? ` <span class="rp">“${esc(pending.note)}”</span>` : '';
+  const manTxt = pending.man ? `，战技「${esc(pending.man)}」` : '';
+  let result;
+  if(w === 'A'){
+    const dmg = calcDamage(pending.weapon, ra.lv, atk);
+    const dOpts = { ignoreArmor: pending.man === '精准打击', armorHalf: pending.man === '穿甲' && ra.lv >= 3 };
+    const manNote = pending.man === '精准打击' ? '（无视护甲）' : (dOpts.armorHalf ? '（穿甲：护甲减半）' : '');
+    result = applyText('hit', {攻击者:atk.name, 目标:t.name, 武器:wName, 伤害:dmg.total, 技能:pending.skill, 战技:pending.man||'无', 攻方等级:LEVEL_NAMES[ra.lv], 守方等级:LEVEL_NAMES[rd.lv]},
+      `<b style="color:${atk.color}">${esc(atk.name)}</b> 用${esc(wName)}命中 <b style="color:${t.color}">${esc(t.name)}</b>！${lvHtml(ra.lv)} vs ${lvHtml(rd.lv)}　伤害 <b class="lv-bad">${dmg.total}</b>（${dmg.detail.join(' + ')}）${manNote}`);
+    applyDamage(t, dmg.total, wName + '攻击' + manNote, dOpts);
+    if(special && special.san) doSanCheck(t, special.san, `被「${special.name}」命中，附加`);
+  } else if(w === 'B'){
+    if(mode === 'fight'){
+      const dmg = calcDamage(dWeapon, rd.lv, t);
+      result = applyText('counter', {攻击者:atk.name, 目标:t.name, 反击者:t.name, 武器:dWeapon, 伤害:dmg.total, 攻方等级:LEVEL_NAMES[ra.lv], 守方等级:LEVEL_NAMES[rd.lv]},
+        `<b style="color:${t.color}">${esc(t.name)} 反击成功！</b>${lvHtml(ra.lv)} vs ${lvHtml(rd.lv)}　反造成伤害 <b class="lv-bad">${dmg.total}</b>（${dWeapon}，${dmg.detail.join(' + ')}）`);
+      applyDamage(atk, dmg.total, '反击(' + dWeapon + ')');
+    } else {
+      result = applyText('dodge', {攻击者:atk.name, 目标:t.name, 武器:wName, 攻方等级:LEVEL_NAMES[ra.lv], 守方等级:LEVEL_NAMES[rd.lv]},
+        `${esc(t.name)} 闪避成功！${lvHtml(ra.lv)} vs ${lvHtml(rd.lv)}，攻击落空`);
+    }
+  } else {
+    result = applyText('miss', {攻击者:atk.name, 目标:t.name, 武器:wName, 攻方等级:LEVEL_NAMES[ra.lv], 守方等级:LEVEL_NAMES[rd.lv]},
+      `双方皆失手：${lvHtml(ra.lv)} vs ${lvHtml(rd.lv)}，无伤害`);
+  }
+  log(atk.name, atk.color,
+    `近战攻击 <b style="color:${t.color}">${esc(t.name)}</b>（${esc(wName)} · ${pending.skill} vs ${esc(dSkill)}${outnum?'，以多打少+1奖励骰':''}${manTxt}）<br>攻 ${rollHtml(ra)}　守 ${rollHtml(rd)}<br>→ ${result}${noteHtml}`,
+    'combat');
+  save(); renderChars(); renderCombat(); refreshSelects();
+}
+/* 战技对抗：缴械 / 抓住 / 推搡 / 绊倒 */
+function resolveManeuver(){
+  const atk = charById(pending.atkId), t = charById(pending.tid);
+  const man = pending.man;
+  const defKey = $('mv-def').value;
+  closeModal();
+  const ac = ensureCond(atk), tc = ensureCond(t);
+  noteAttack(atk);
+  const outnum = state.combat.acted[t.id] === state.combat.round;
+  let bonus = (pending.dice > 0 ? pending.dice : 0) + (outnum ? 1 : 0);
+  let penalty = pending.dice < 0 ? -pending.dice : 0;
+  if(ac.prone) penalty += 1;
+  if(ac.grappledBy) penalty += 1;
+  const ra = rollDetail(atk.id, pending.skill, { bonus, penalty });
+  const rd = rollDetail(t.id, defKey, { penalty: tc.prone ? 1 : 0 });
+  const w = opposed({lv:ra.lv, roll:ra.roll}, ra.val, {lv:rd.lv, roll:rd.roll}, rd.val);
+  state.combat.acted[t.id] = state.combat.round;
+  const noteHtml = pending.note ? ` <span class="rp">“${esc(pending.note)}”</span>` : '';
+  const sp = findSpecial(atk, pending.weapon);
+  let result;
+  if(w === 'A'){
+    if(man === '缴械'){
+      tc.disarmed = sp ? sp.name : pending.weapon;
+      result = `<b style="color:${atk.color}">${esc(atk.name)}</b> 缴械成功！<b style="color:${t.color}">${esc(t.name)}</b> 的「${esc(tc.disarmed)}」脱手`;
+    } else if(man === '抓住'){
+      tc.grappledBy = atk.id;
+      result = `<b style="color:${atk.color}">${esc(atk.name)}</b> 抓住 <b style="color:${t.color}">${esc(t.name)}</b>！目标攻击 -1 惩罚骰，需力量对抗挣脱`;
+    } else {
+      tc.prone = true;
+      result = `<b style="color:${atk.color}">${esc(atk.name)}</b> 使 <b style="color:${t.color}">${esc(t.name)}</b> 倒地！起身需消耗一次行动`;
+    }
+  } else if(w === 'B'){
+    result = `${esc(t.name)} 守住身形，战技「${esc(man)}」失败`;
+  } else {
+    result = `双方皆失手，战技「${esc(man)}」未生效`;
+  }
+  result = applyText(w === 'A' ? 'maneuverOk' : 'maneuverFail',
+    {攻击者:atk.name, 目标:t.name, 战技:man, 攻方等级:LEVEL_NAMES[ra.lv], 守方等级:LEVEL_NAMES[rd.lv]}, result);
+  log(atk.name, atk.color,
+    `战技「${esc(man)}」对 ${esc(t.name)}（${pending.skill} vs ${defKey}${outnum?'，以多打少+1奖励骰':''}）<br>攻 ${rollHtml(ra)}　守 ${rollHtml(rd)}<br>→ ${result}${noteHtml}`,
+    'combat');
+  save(); renderChars(); renderCombat();
+}
+function noteAttack(atk){
+  const cb = state.combat; if(!cb) return;
+  if(cb.atkR !== cb.round){ cb.atkR = cb.round; cb.atkC = {}; }
+  cb.atkC[atk.id] = (cb.atkC[atk.id] || 0) + 1;
+}
+function resolveRanged(cover){
+  const atk = charById(pending.atkId), t = charById(pending.tid);
+  closeModal();
+  noteAttack(atk);
+  const ac = ensureCond(atk), tc = ensureCond(t);
+  let bonus = pending.dice > 0 ? pending.dice : 0;
+  let penalty = pending.dice < 0 ? -pending.dice : 0;
+  if(pending.man === '精准打击') penalty += 1;
+  if(ac.prone) penalty += 1;
+  if(ac.grappledBy) penalty += 1;
+  let aimTxt = '';
+  if(ac.aim){ bonus += ac.aim; aimTxt = '（瞄准 +' + ac.aim + ' 奖励骰）'; delete ac.aim; }
+  let coverHtml = '';
+  if(cover){
+    const rc = rollDetail(t.id, '闪避', { penalty: tc.prone ? 1 : 0 });
+    coverHtml = `${esc(t.name)} 扑向掩体 ${rollHtml(rc)}<br>`;
+    if(rc.lv >= 2){ penalty += 1; state.combat.acted[t.id] = state.combat.round; coverHtml += `→ 掩体生效，攻击者受 1 惩罚骰，${esc(t.name)} 放弃本轮行动<br>`; }
+    else coverHtml += `→ 未能掩护<br>`;
+  }
+  const ra = rollDetail(atk.id, pending.skill, { bonus, penalty });
+  const w = WEAPONS[pending.weapon];
+  const noteHtml = pending.note ? ` <span class="rp">“${esc(pending.note)}”</span>` : '';
+  let result;
+  if(ra.lv >= 2){
+    const dmg = calcDamage(pending.weapon, ra.lv, atk);
+    const dOpts = { ignoreArmor: pending.man === '精准打击', armorHalf: pending.man === '穿甲' && ra.lv >= 3 };
+    const manNote = pending.man === '精准打击' ? '（无视护甲）' : (dOpts.armorHalf ? '（穿甲：护甲减半）' : '');
+    result = applyText('rangedHit', {攻击者:atk.name, 目标:t.name, 武器:pending.weapon, 伤害:dmg.total, 技能:pending.skill, 战技:pending.man||'无', 攻方等级:LEVEL_NAMES[ra.lv], 守方等级:'—'},
+      `<b style="color:${atk.color}">${esc(atk.name)} 子弹命中</b> <b style="color:${t.color}">${esc(t.name)}</b>！${lvHtml(ra.lv)}　伤害 <b class="lv-bad">${dmg.total}</b>（${dmg.detail.join(' + ')}）${manNote}`);
+    applyDamage(t, dmg.total, pending.weapon + '射击' + manNote, dOpts);
+  } else {
+    result = applyText('rangedMiss', {攻击者:atk.name, 目标:t.name, 武器:pending.weapon, 技能:pending.skill, 攻方等级:LEVEL_NAMES[ra.lv]},
+      `射击落空，${lvHtml(ra.lv)}`);
+  }
+  log(atk.name, atk.color,
+    `远程攻击 <b style="color:${t.color}">${esc(t.name)}</b>（${pending.skill} · ${pending.weapon}${aimTxt}）<br>${coverHtml}攻 ${rollHtml(ra)}<br>→ ${result}${noteHtml}`,
+    'combat');
+  save(); renderChars(); renderCombat(); refreshSelects();
+}
+function calcDamage(weaponKey, lv, char){
+  const sp = findSpecial(char, weaponKey);
+  if(sp){
+    const r = rollFormula(sp.dmg);
+    return { total: r.total, detail: [`${sp.dmg}=${r.total}${r.detail.length ? ' ' + r.detail.join('') : ''}`] };
+  }
+  const w = WEAPONS[weaponKey];
+  const detail = []; let total = 0;
+  if(w.impale && lv >= 4){
+    total += maxFormula(w.dmg);
+    detail.push('最大' + maxFormula(w.dmg));
+    if(w.db){ const m = maxDB(char.db); total += m; detail.push('DB最大' + (m>0?'+'+m:m)); }
+    const extra = rollFormula(w.dmg);
+    total += extra.total; detail.push('穿刺重掷' + extra.total);
+  } else {
+    const base = rollFormula(w.dmg);
+    total += base.total; detail.push(base.total);
+    if(w.db){ const db = rollDB(char.db); total += db.total; detail.push('DB' + (db.total>0?'+'+db.total:db.total)); }
+  }
+  return { total, detail };
+}
+function applyDamage(char, dmg, desc, opts = {}){
+  if(dmg <= 0) return;
+  let armor = (char.specials || {}).armor || 0;
+  if(opts.ignoreArmor) armor = 0;
+  else if(opts.armorHalf) armor = Math.ceil(armor / 2);
+  if(armor > 0){
+    const eff = Math.max(0, dmg - armor);
+    log(char.name, char.color, `🛡 护甲抵消 <b>${Math.min(armor, dmg)}</b> 点（${dmg} → ${eff}）`, 'combat');
+    dmg = eff;
+    if(dmg <= 0){ log(char.name, char.color, `（${esc(desc)}）被护甲完全挡住，未受伤`, 'combat'); return; }
+  }
+  char.hp.cur = Math.max(0, char.hp.cur - dmg);
+  const major = dmg >= Math.ceil(char.hp.max / 2);
+  let extra = `　${esc(char.name)} HP → <b class="lv-bad">${char.hp.cur}/${char.hp.max}</b>`;
+  if(major && char.hp.cur > 0){
+    const con = doCheck(char, 'CON', { silent:true });
+    char._major = true;
+    if(con && !con.pass){ extra += ` ⚠ <b>重伤</b>！体质检定 🎲${con.roll}/${con.val} 失败 → <span class="lv-bad">昏迷</span>`; }
+    else if(con){ extra += ` ⚠ <b>重伤</b>！体质检定 🎲${con.roll}/${con.val} 成功，勉强站住`; }
+  }
+  if(char.hp.cur === 0){
+    extra += major ? ` ☠ <span class="lv-fum">HP归零且重伤 → 濒死！急救稳定伤势，否则每轮体质检定</span>` : ` ☠ <span class="lv-bad">HP归零 → 昏迷</span>`;
+  }
+  log(char.name, char.color, `（${esc(desc)} -${dmg} HP）${extra}`, 'combat');
+}
+
+/* ================= 追逐轮 ================= */
+function startChase(){
+  if(!requireKP()) return;
+  const flee = [...document.querySelectorAll('#chase-flee-list input:checked')].map(i=>i.dataset.cid);
+  const purs = [...document.querySelectorAll('#chase-pursue-list input:checked')].map(i=>i.dataset.cid);
+  if(!flee.length || !purs.length){ toastErr('两边至少各选一人'); return; }
+  if(flee.some(id => purs.includes(id))){ toastErr('同一角色不能同时在逃跑方和追逐方'); return; }
+  const lead = +$('chase-lead').value || 0;
+  const trackLen = +$('chase-len').value || 15;
+  if(lead >= trackLen){ toastErr('领先格数必须小于赛道长度'); return; }
+  const mk = (cid, side) => { const c = charById(cid); return { cid, side, pos: side==='flee' ? lead : 0, mov: c.mov, done:false }; };
+  state.chase = { round:0, trackLen, fleeSet: flee, parts:[...flee.map(id=>mk(id,'flee')), ...purs.map(id=>mk(id,'pursue'))], hazards:[], over:false, result:null };
+  const names = id => esc(charById(id).name);
+  log('KP', KP_COLOR, `—— <b>追逐开始</b> —— 逃跑：${flee.map(names).join('、')}（领先 ${lead} 格）｜追逐：${purs.map(names).join('、')}｜赛道 ${state.chase.trackLen} 格`, 'chase');
+  save(); renderChase();
+}
+function endChase(){
+  if(!requireKP()) return;
+  askConfirm('结束追逐？', '结束追逐').then(ok => {
+    if(!ok) return;
+    log('KP', KP_COLOR, '—— 追逐结束 ——', 'chase');
+    state.chase = null; save(); renderChase();
+    toast('追逐已结束', 'ok');
+  });
+}
+// 自然结束（全员逃脱/被抓）后返回设置，不再写入重复的结束日志
+function exitChase(){
+  if(!requireKP()) return;
+  state.chase = null; save(); renderChase();
+  toast('已返回追逐设置', 'ok');
+}
+function addHazard(){
+  if(!requireKP()) return;
+  const ch = state.chase; if(!ch) return;
+  const pos = +$('hz-pos').value, name = $('hz-name').value.trim() || '障碍';
+  if(!pos || pos < 1 || pos >= ch.trackLen){ toastErr('位置需在 1 ~ ' + (ch.trackLen-1) + ' 之间'); return; }
+  ch.hazards.push({ id: uid(), pos, name, skill: $('hz-skill').value, diff: $('hz-diff').value });
+  log('KP', KP_COLOR, `在 ${pos} 格处布置障碍「${esc(name)}」（${esc($('hz-skill').value)}·${$('hz-diff').value}）🚧`, 'chase');
+  save(); renderChase();
+}
+function chaseRound(){
+  if(!requireKP()) return;
+  const ch = state.chase;
+  if(!ch) return;
+  if(ch.over){ toast('本轮追逐已结束，点「返回追逐设置」开始新的追逐', 'info'); return; }
+  ch.round++;
+  log('KP', KP_COLOR, `—— 追逐第 ${ch.round} 轮 ——`, 'chase');
+  const parts = ch.parts.filter(p => !p.done).slice().sort((a,b) => charById(b.cid).stats.DEX - charById(a.cid).stats.DEX);
+  for(const p of parts){
+    const c = charById(p.cid);
+    // 每轮先做敏捷检定决定本轮移动力
+    const rd = doCheck(c, 'DEX', { silent:true });
+    if(!rd) continue;
+    let moved = p.mov, mvTxt = '';
+    if(rd.lv >= 5){ moved += 2; mvTxt = ' +2 格'; }
+    else if(rd.lv >= 3){ moved += 1; mvTxt = ' +1 格'; }
+    else if(rd.lv === 2){ mvTxt = ''; }
+    else if(rd.lv === 1){ moved = Math.max(1, moved - 1); mvTxt = ' -1 格'; }
+    else { moved = 0; mvTxt = '，摔倒原地'; }
+    const diceTxt = `🎲${rd.roll}/${rd.val}`;
+    if(moved === 0){
+      log(c.name, c.color, `敏捷检定 ${diceTxt} → ${LEVEL_NAMES[rd.lv]}，摔倒原地，停在 ${p.pos} 格`, 'chase');
+      continue;
+    }
+    const hz = ch.hazards.find(h => h.pos <= p.pos + moved && h.pos >= p.pos);
+    if(hz){
+      const res = doCheck(c, hz.skill, { difficulty: hz.diff, silent:true });
+      if(!res){ continue; }
+      const hzDice = `🎲${res.roll}/${res.val}`;
+      if(res.pass){
+        p.pos = Math.min(ch.trackLen, p.pos + moved);
+        log(c.name, c.color, `敏捷检定 ${diceTxt} → ${LEVEL_NAMES[rd.lv]}${mvTxt}｜冲过障碍「${esc(hz.name)}」：${esc(hz.skill)}检定（${hz.diff}）${hzDice} → ${LEVEL_NAMES[res.lv]}，全速 ${moved} 格，位于 ${p.pos} 格 🏃`, 'chase');
+      } else {
+        log(c.name, c.color, `敏捷检定 ${diceTxt} → ${LEVEL_NAMES[rd.lv]}${mvTxt}｜在障碍「${esc(hz.name)}」处失手：${esc(hz.skill)}检定（${hz.diff}）${hzDice} → ${LEVEL_NAMES[res.lv]}，停在 ${p.pos} 格，被落下 🚧（KP 可自行追加伤害）`, 'chase');
+      }
+    } else {
+      p.pos = Math.min(ch.trackLen, p.pos + moved);
+      log(c.name, c.color, `敏捷检定 ${diceTxt} → ${LEVEL_NAMES[rd.lv]}${mvTxt}，前进 ${moved} 格，位于 ${p.pos} 格`, 'chase');
+    }
+  }
+  const alive = ch.parts.filter(p => !p.done);
+  for(const p of alive.filter(p => isFlee(p))){
+    if(p.pos >= ch.trackLen){ p.done = 'escaped'; log('KP', KP_COLOR, `🏁 <b style="color:${charById(p.cid).color}">${esc(charById(p.cid).name)}</b> 冲出赛道，逃脱成功！`, 'chase'); continue; }
+    const catcher = alive.find(q => !isFlee(q) && q.pos >= p.pos);
+    if(catcher){ p.done = 'caught'; log('KP', KP_COLOR, `✋ <b style="color:${charById(catcher.cid).color}">${esc(charById(catcher.cid).name)}</b> 追上了 <b style="color:${charById(p.cid).color}">${esc(charById(p.cid).name)}</b>！`, 'chase'); }
+  }
+  const fa = alive.filter(p => isFlee(p) && !p.done), pa = alive.filter(p => !isFlee(p) && !p.done);
+  if(fa.length && pa.length){
+    const minF = Math.min(...fa.map(p=>p.mov)), maxP = Math.max(...pa.map(p=>p.mov));
+    if(minF > maxP) log('KP', KP_COLOR, `<span class="muted">提示：逃跑方 MOV 全面高于追逐方（${minF} &gt; ${maxP}），按规则可判定逃脱。</span>`, 'chase');
+  }
+  if(!fa.length && !ch.over){
+    ch.over = true;
+    const escN = ch.parts.filter(p => isFlee(p) && p.done === 'escaped').length;
+    const catN = ch.parts.filter(p => isFlee(p) && p.done === 'caught').length;
+    ch.result = { esc: escN, caught: catN };
+    log('KP', KP_COLOR, `—— 追逐结束（逃跑方：逃脱 ${escN} / 被抓 ${catN}）——`, 'chase');
+    toast(`追逐结束：逃脱 ${escN} / 被抓 ${catN}`, 'ok');
+  }
+  save(); renderChase();
+}
+function isFlee(p){ return p.side === 'flee'; }
+function renderChase(){
+  const setup = $('chase-setup'), run = $('chase-run'), wait = $('chase-wait');
+  // 参战名单
+  const listHtml = side => state.chars.length ? state.chars.map(c =>
+    `<label class="stat" style="cursor:pointer;display:block;margin-bottom:4px"><input type="checkbox" data-cid="${c.id}"> ${esc(c.name)} <span style="color:var(--dim)">MOV ${c.mov}</span></label>`
+  ).join('') : '<span class="muted">先导入角色。</span>';
+  if(!state.chase){
+    setup.style.display = ''; run.style.display = 'none';
+    if(wait) wait.style.display = isPlayer() ? '' : 'none';
+    $('chase-flee-list').innerHTML = listHtml();
+    $('chase-pursue-list').innerHTML = listHtml();
+    return;
+  }
+  if(wait) wait.style.display = 'none';
+  const ch = state.chase;
+  setup.style.display = 'none'; run.style.display = '';
+  $('chase-round-label').textContent = ch.over ? `追逐 · 已结束（第 ${ch.round} 轮）` : `追逐 · 第 ${ch.round} 轮`;
+  // 赛道
+  const pct = pos => Math.min(96, pos / ch.trackLen * 100);
+  const fleeParts = ch.parts.filter(p => !p.done && ch.fleeSet && ch.fleeSet.includes(p.cid));
+  const pursParts = ch.parts.filter(p => !p.done && (!ch.fleeSet || !ch.fleeSet.includes(p.cid)));
+  let track = '<div class="lane-line"></div><div class="finish" title="终点"></div>';
+  ch.hazards.forEach(h => {
+    track += `<div class="hazard" style="left:${pct(h.pos)}%" title="${esc(h.name)} · ${esc(h.skill)}(${h.diff})">🚧<span class="hz-label">${h.pos}格 ${esc(h.name)}</span></div>`;
+  });
+  ch.parts.filter(p => !p.done).forEach(p => {
+    const c = charById(p.cid);
+    const fleeing = ch.fleeSet.includes(p.cid);
+    track += `<div class="runner ${fleeing?'fleeing':'pursuer'}" style="left:${pct(p.pos)}%"><span class="nm" style="color:${c.color}">${esc(c.name)} ${p.pos}</span><br>${fleeing?'🏃':'👹'}</div>`;
+  });
+  $('chase-track').innerHTML = track;
+  // 控制
+  const alive = ch.parts.filter(p => !p.done);
+  if(isPlayer()){
+    $('chase-controls').innerHTML = '<span class="muted">追逐由 KP 推进；你可以在下方记录自己的行动与台词。</span>';
+    renderLog();
+    return;
+  }
+  $('chase-controls').innerHTML = ch.over
+    ? `<div class="muted" style="flex:1 1 100%">追逐已结束：逃跑方逃脱 ${ch.result ? ch.result.esc : 0} / 被抓 ${ch.result ? ch.result.caught : 0}。规则上所有逃跑方都已有结果，不再推进轮次。</div>
+       <button class="primary" onclick="exitChase()">↩ 返回追逐设置</button>`
+    : (alive.length
+      ? `<button class="primary" onclick="chaseRound()">⏭ 推进一轮（全员敏捷检定 + 移动 + 障碍判定）</button>
+       <div class="muted" style="flex:1 1 100%;margin-top:4px">每轮按 DEX 顺序掷敏捷：大成功 +2 格、困难/极难 +1 格、失败 -1 格、大失败原地摔倒；跨障碍时再掷对应技能。<br>结束判定：逃跑方到达终点即逃脱；追逐方到达逃跑方所在格即抓住；所有逃跑方都有结果后自动结束。</div>`
+      : `<span class="muted">追逐已结束。</span>`);
+  renderLog();
+}
+
+/* ================= 存档 ================= */
+function exportSave(){
+  if(!requireKP()) return;
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'coc_团档_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importSaveFile(input){
+  if(!requireKP()){ input.value = ''; return; }
+  const f = input.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const s = JSON.parse(r.result);
+      if(!s.chars) throw 0;
+      state = s; save();
+      renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects();
+      toast('存档已恢复', 'ok');
+    }catch(e){ toastErr('存档文件无效，请确认是本工具导出的 JSON 存档'); }
+    input.value = '';
+  };
+  r.readAsText(f);
+}
+function clearAll(){
+  if(!requireKP()) return;
+  askConfirm('清空全部角色与日志？此操作不可撤销（建议先导出存档）', '清空').then(ok => {
+    if(!ok) return;
+    localStorage.removeItem('coc_tool_v1');
+    state = { chars:[], log:[], combat:null, chase:null, texts:{} };
+    renderChars(); renderLog(); renderFeed(); renderCombat(); renderChase(); refreshSelects();
+    toast('已清空全部数据', 'ok');
+  });
+}
+
+/* ================= Tab 与选择器 ================= */
+function switchTab(name){
+  document.querySelectorAll('section').forEach(s => s.classList.remove('on'));
+  $('tab-' + name).classList.add('on');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  // 切换时重渲染，保证导入新角色后名单即时可见
+  if(name === 'chars') renderChars();
+  if(name === 'check') refreshSelects();
+  if(name === 'combat') renderCombat();
+  if(name === 'chase') renderChase();
+  if(name === 'log') renderLog();
+  if(name === 'text') renderTextCfg();
+}
+function fillSample(){ $('import-text').value = SAMPLE_CARD; }
+function charOptions(sel){
+  return `<option value="KP">KP</option>` + state.chars.map(c => `<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('');
+}
+function refreshSelects(){
+  const pl = isPlayer();
+  const own = myCharId();
+  const ownList = pl ? state.chars.filter(c => c.id === own) : state.chars;
+  const ids = ['qc-char','sc-char','oc-a','oc-b','sp-char-1','sp-char-2','sp-char-3'];
+  ids.forEach(id => {
+    const el = $(id); if(!el) return;
+    const keep = el.value;
+    const list = (id === 'oc-b') ? state.chars : ownList;
+    if(id.indexOf('sp-char-') === 0 && !pl){ el.innerHTML = charOptions(keep); return; }
+    if(!list.length){
+      el.innerHTML = '<option value="">（未选择角色）</option>';
+      return;
+    }
+    el.innerHTML = list.map(c => `<option value="${c.id}" ${c.id===keep?'selected':''}>${esc(c.name)}</option>`).join('');
+  });
+  renderMyCharOptions();
+  refreshSkillDatalists();
+  const hz = $('hz-skill');
+  if(hz) hz.innerHTML = SKILLS.map(([k]) => `<option>${k}</option>`).join('');
+}
+
+/* ================= 云同步（双线路：免注册 MQTT + LeanCloud） ================= */
+const SYNC_CFG_KEY = 'coc_sync_cfg_v1';
+let syncCfg = {};
+try{ syncCfg = JSON.parse(localStorage.getItem(SYNC_CFG_KEY) || '{}'); }catch(e){}
+let sync = { on:false, role:'kp', obj:null, live:null, timer:null, sdkReady:false, _last:null, _lastTs:0, mq:null, cid:'' };
+
+function loadScript(urls){
+  return urls.reduce((p,u)=>p.catch(()=>new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src=u; s.onload=res; s.onerror=rej; document.head.appendChild(s);
+  })), Promise.reject());
+}
+function loadSdk(){
+  if(window.AV) return Promise.resolve();
+  return loadScript([
+    'https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.2/dist/av-min.js',
+    'https://unpkg.com/leancloud-storage@4.15.2/dist/av-min.js',
+    'https://cdn1.lncld.net/static/js/4.15.2/av-min.js'
+  ]);
+}
+function loadMqtt(){
+  if(window.mqtt) return Promise.resolve();
+  return loadScript([
+    'https://cdn.jsdelivr.net/npm/mqtt@4.3.7/dist/mqtt.min.js',
+    'https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js'
+  ]);
+}
+function syncStatus(html){ $('sync-status').innerHTML = html; }
+function randomRoom(){ $('sync-room').value = Math.random().toString(36).slice(2,6).toUpperCase(); }
+function syncFields(){
+  return {
+    line: $('sync-line').value,
+    appId: $('sync-appid').value.trim(),
+    appKey: $('sync-appkey').value.trim(),
+    server: $('sync-server').value.trim(),
+    room: $('sync-room').value.trim().toUpperCase(),
+    role: $('sync-role').value
+  };
+}
+function syncLineUi(){
+  $('lc-fields').style.display = $('sync-line').value === 'mqtt' ? 'none' : '';
+}
+function refreshSyncLink(){ $('sync-link').value = genSyncLink(); }
+function syncConnect(){
+  const f = syncFields();
+  if(!f.room){ toastErr('请填写或随机生成房间号'); return; }
+  syncCfg = f; localStorage.setItem(SYNC_CFG_KEY, JSON.stringify(f));
+  if(f.line === 'mqtt'){
+    mqttConnect(f).catch(e => syncStatus('❌ 免注册线路连接失败：' + esc((e && e.message) || e) + '（可稍后重试，或切换 LeanCloud 线路）'));
+  } else {
+    if(!f.appId || !f.appKey){ toastErr('LeanCloud 线路需要先填写 AppID 和 AppKey（免费注册，见下方说明）'); return; }
+    lcConnect(f).catch(e => syncStatus('❌ 连接失败：' + esc((e && e.message) || e) + '（请检查 AppID/AppKey/服务器地址）'));
+  }
+}
+/* ---- 线路一：免注册 MQTT（EMQX 公共服务器） ---- */
+const MQTT_URL = 'wss://broker.emqx.io:8084/mqtt';
+function mqttTopic(room){ return 'coc7tool/' + room; }
+function mqttConnect(f){
+  syncStatus('⏳ 正在连接免注册线路（公共服务器）……');
+  return loadMqtt().then(() => new Promise((resolve, reject) => {
+    sync.cid = 'coc' + Math.random().toString(36).slice(2, 10);
+    sync.gotRemote = false; sync.pendingRemote = null; sync._lastTs = 0; sync._initDone = false; sync._last = null;
+    const mq = mqtt.connect(MQTT_URL, { clientId: sync.cid, keepalive: 30, reconnectPeriod: 4000, connectTimeout: 8000 });
+    sync.mq = mq;
+    let settled = false, joined = false;
+    const done = e => { if(!settled){ settled = true; e ? reject(e) : resolve(); } };
+    const to = setTimeout(() => done(new Error('连接超时——公共服务器可能繁忙，稍后重试或换用 LeanCloud 线路')), 12000);
+    mq.on('error', e => { clearTimeout(to); done(e); });
+    mq.on('connect', () => {
+      clearTimeout(to);
+      if(joined){
+        // 断线自动重连成功：只复位提示，不重复绑定监听
+        if(sync.on) syncStatus(`✅ 已重新连接（${f.role === 'kp' ? 'KP' : '玩家'} · 免注册线路 · 房间 <b>${esc(f.room)}</b>）`);
+        return;
+      }
+      joined = true;
+      sync.on = true; sync.role = f.role;
+      mq.on('message', (topic, payload) => {
+        if(!sync.on) return;
+        try{
+          const msg = JSON.parse(payload.toString());
+          if(msg.from === sync.cid) return;
+          if(!msg.state) return;
+          const ts = msg.ts || Date.now();
+          if(ts <= (sync._lastTs || 0)) return;
+          sync.gotRemote = true;
+          // KP 首次接入：先暂存房间快照，等本地状态时间戳比较后再决定用谁
+          if(f.role === 'kp' && !sync._initDone){ sync.pendingRemote = { state: msg.state, ts }; return; }
+          // KP 本地有更晚的改动时，忽略这条旧快照并把自己的状态推回房间
+          if(f.role === 'kp' && ts < (state._ts || 0)){ syncPush(true); return; }
+          sync._lastTs = ts;
+          applyRemote(msg.state);
+        }catch(err){}
+      });
+      mq.on('close', () => { if(sync.on) syncStatus('⚠ 与公共服务器断开，自动重连中……'); });
+      mq.subscribe(mqttTopic(f.room), err => done(err));
+    });
+  })).then(() => {
+    sync.on = true; sync.role = f.role;
+    if(f.role === 'kp'){
+      // 先收房间里已有的状态（retained）：远程更新更晚才采用，否则用本地状态覆盖房间，避免旧快照回退
+      return new Promise(res => setTimeout(res, 800)).then(() => {
+        const pr = sync.pendingRemote;
+        sync.pendingRemote = null; sync._initDone = true;
+        if(pr && pr.ts >= (state._ts || 0)){
+          sync._lastTs = pr.ts;
+          applyRemote(pr.state);
+          return;
+        }
+        return syncPush(true);
+      }).then(() => {
+        refreshSyncLink();
+        applyRoleUi();
+        syncStatus(`✅ 已连接（KP · 免注册线路 · 房间 <b>${esc(f.room)}</b>）`);
+      });
+    }
+    sync._initDone = true;
+    refreshSyncLink();
+    applyRoleUi();
+    syncStatus(`✅ 已连接（玩家 · 免注册线路 · 房间 <b>${esc(f.room)}</b>）。请选择你要操控的角色。`);
+    setTimeout(() => {
+      if(sync.on && sync.role === 'player' && !state.chars.length)
+        syncStatus('⚠ 已连上服务器，但房间还没有内容——请确认 KP 已点「连接」并导入角色');
+    }, 5000);
+  });
+}
+function mqttPush(force){
+  if(!sync.on || !sync.mq) return Promise.resolve();
+  const doIt = () => {
+    const body = JSON.stringify(Object.assign({}, state, { log: state.log.slice(-500) }));
+    if(body === sync._last) return Promise.resolve();
+    sync._last = body;
+    const payload = '{"from":' + JSON.stringify(sync.cid) + ',"ts":' + Date.now() + ',"state":' + body + '}';
+    try{ sync.mq.publish(mqttTopic(syncCfg.room), payload, { retain: true, qos: 0 }); }catch(e){ console.error('云同步失败', e); }
+    return Promise.resolve();
+  };
+  if(force) return doIt();
+  clearTimeout(sync.timer);
+  return new Promise(res => { sync.timer = setTimeout(() => { doIt().then(res, res); }, 400); });
+}
+function mqttDisconnect(){
+  if(sync.mq){
+    try{ sync.mq.publish(mqttTopic(syncCfg.room), JSON.stringify({ from: sync.cid, state: null }), { retain: true }); }catch(e){}
+    try{ sync.mq.end(true); }catch(e){}
+  }
+  sync.mq = null;
+}
+/* ---- 线路二：LeanCloud（稳定模式） ---- */
+function lcConnect(f){
+  syncStatus('⏳ 正在连接 LeanCloud……');
+  return loadSdk().then(()=>{
+    if(!sync.sdkReady){
+      AV.init({ appId:f.appId, appKey:f.appKey, serverURL: f.server || undefined });
+      sync.sdkReady = true;
+    }
+    const q = new AV.Query('CocRoom'); q.equalTo('roomId', f.room);
+    return q.find().catch(e => { if(e.code === 101) return []; throw e; }).then(list=>{
+      if(f.role === 'kp'){
+        sync.obj = list.length ? list[0] : new AV.Object('CocRoom');
+        if(!list.length) sync.obj.set('roomId', f.room);
+        // 允许同房间的所有客户端写入，玩家操作才能回传
+        try{
+          const acl = new AV.ACL();
+          acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true);
+          sync.obj.setACL(acl);
+        }catch(e){}
+        sync.on = true; sync.role = 'kp';
+        const existing = list.length ? sync.obj.get('state') : null;
+        let exObj = null;
+        if(existing){ try{ exObj = typeof existing === 'string' ? JSON.parse(existing) : existing; }catch(e){} }
+        // 房间里的快照比本地新才采用，否则用本地覆盖，避免旧状态把本地进度回退掉
+        const useRemote = !!(exObj && (exObj._ts || 0) >= (state._ts || 0) && exObj.chars);
+        if(useRemote) applyRemote(existing);
+        return (useRemote || list.length
+          ? (useRemote ? sync.obj.save() : syncPush(true)).catch(e => console.error('云同步失败', e))
+          : syncPush(true)).then(()=>{
+          refreshSyncLink(); applyRoleUi();
+          syncStatus(`✅ 已连接（KP · LeanCloud · 房间 <b>${esc(f.room)}</b>）`);
+          return q.subscribe().then(lq=>{
+            sync.live = lq;
+            lq.on('update', obj => { if(!sync.on) return; const s = obj.get('state'); if(s) applyRemote(s); });
+            lq.on('error', e => console.error('LiveQuery 错误', e));
+          });
+        });
+      } else {
+        if(!list.length){
+          syncStatus(`⚠ 房间 <b>${esc(f.room)}</b> 还不存在——请等 KP 先点「连接」建房，再回来点「连接」`);
+          return;
+        }
+        sync.obj = list[0]; sync.role = 'player'; sync.on = true;
+        applyRemote(sync.obj.get('state'));
+        refreshSyncLink(); applyRoleUi();
+        syncStatus(`✅ 已连接（玩家 · LeanCloud · 房间 <b>${esc(f.room)}</b>）。请选择你要操控的角色`);
+        return q.subscribe().then(lq=>{
+          sync.live = lq;
+          lq.on('update', obj => { if(!sync.on) return; const s = obj.get('state'); if(s) applyRemote(s); });
+          lq.on('error', e => console.error('LiveQuery 错误', e));
+        });
+      }
+    });
+  });
+}
+function lcPush(force){
+  if(!sync.on || !sync.obj) return Promise.resolve();
+  const doIt = ()=>{
+    const payload = JSON.stringify(Object.assign({}, state, { log: state.log.slice(-500) }));
+    if(payload === sync._last) return Promise.resolve();
+    sync._last = payload;
+    return sync.obj.save({ state: payload }).catch(e => console.error('云同步失败', e));
+  };
+  if(force) return doIt();
+  clearTimeout(sync.timer);
+  return new Promise(res => { sync.timer = setTimeout(()=>{ doIt().then(res, res); }, 400); });
+}
+function lcDisconnect(){
+  if(sync.live){ try{ sync.live.unsubscribe().catch(()=>{}); }catch(e){} }
+  sync.obj = null; sync.live = null;
+}
+function syncDisconnect(){
+  if(syncCfg.line === 'lc') lcDisconnect(); else mqttDisconnect();
+  sync.on = false; sync.role = 'kp';
+  document.body.classList.remove('player-mode');
+  applyRoleUi();
+  syncStatus('已断开（本地数据不受影响）');
+}
+function syncPush(force){
+  if(!sync.on) return Promise.resolve();
+  return syncCfg.line === 'mqtt' ? mqttPush(force) : lcPush(force);
+}
+function applyRemote(str){
+  try{
+    if(typeof str === 'string' && str === sync._last) return;
+    const s = typeof str === 'string' ? JSON.parse(str) : str;
+    if(!s || !s.chars) return;
+    state = s;
+    if(!state.texts) state.texts = {};
+    renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderFeed();
+    if(isPlayer()){
+      const mc = myChar();
+      if(mc && $('sync-banner')) $('sync-banner').textContent = `🎭 玩家模式 · 房间 ${syncCfg.room || ''} · 操控：${mc.name}`;
+      if(!mc) chooseMyChar();
+    }
+  }catch(e){}
+}
+function genSyncLink(){
+  if(!syncCfg.room) return '';
+  const base = location.origin + location.pathname;
+  return base + '?room=' + encodeURIComponent(syncCfg.room) +
+    '&line=' + encodeURIComponent(syncCfg.line || 'mqtt') +
+    '&appid=' + encodeURIComponent(syncCfg.appId||'') +
+    '&appkey=' + encodeURIComponent(syncCfg.appKey||'') +
+    '&server=' + encodeURIComponent(syncCfg.server||'') + '&role=player';
+}
+function copySyncLink(){
+  const link = $('sync-link').value;
+  if(!link){ toastErr('先连接成功再复制链接'); return; }
+  copyText(link).then(() => toast('已复制，发给玩家即可', 'ok'), () => askInput('手动复制', '复制下面的房间链接', link));
+}
+function initSync(){
+  if(syncCfg.appId){
+    $('sync-line').value = syncCfg.line || 'mqtt';
+    $('sync-appid').value = syncCfg.appId || '';
+    $('sync-appkey').value = syncCfg.appKey || '';
+    $('sync-server').value = syncCfg.server || '';
+    $('sync-room').value = syncCfg.room || '';
+  }
+  const p = new URLSearchParams(location.search);
+  if(p.get('line')) $('sync-line').value = p.get('line') === 'lc' ? 'lc' : 'mqtt';
+  if(p.get('appid')) $('sync-appid').value = p.get('appid');
+  if(p.get('appkey')) $('sync-appkey').value = p.get('appkey');
+  if(p.get('server')) $('sync-server').value = p.get('server');
+  syncLineUi();
+  syncRoleUi();
+  if(p.get('room')){
+    $('sync-room').value = p.get('room').toUpperCase();
+    $('sync-role').value = p.get('role') === 'kp' ? 'kp' : 'player';
+    syncRoleUi();
+    setTimeout(syncConnect, 50);
+  }
+}
+
+/* ================= 初始化 ================= */
+function init(){
+  load();
+  renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderFeed(); renderTextCfg();
+  ['qc-char','oc-a','oc-b'].forEach(id => {
+    const el = $(id); if(!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.addEventListener('change', refreshSkillDatalists);
+  });
+  const hz = $('hz-skill');
+  if(hz && !hz.innerHTML) hz.innerHTML = SKILLS.map(([k]) => `<option>${k}</option>`).join('');
+  initSync();
+  placeToastRoot();
+}
+init();
+</script>
+</body>
+</html>
