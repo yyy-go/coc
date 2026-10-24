@@ -332,6 +332,7 @@
     </div>
   </div>
   <div id="combat-run" style="display:none">
+    <div class="panel kp-only" id="kp-pending" style="display:none"></div>
     <div class="panel">
       <div class="row">
         <h3 style="margin:0" id="combat-round-label">第 1 轮</h3>
@@ -544,6 +545,7 @@ function load(){
   if(!state.chars) state.chars = [];
   if(!state.log) state.log = [];
   if(!state.texts) state.texts = {};
+  if(!state.reacts) state.reacts = [];
   // 统一角色配色：玩家各自不同色，NPC 全部同一个色；旧存档一并迁移
   let pi = 0;
   state.chars.forEach(c => { c.color = c.kind === 'npc' ? NPC_COLOR : pcColorAt(pi++); });
@@ -765,7 +767,8 @@ function charById(id){ return state.chars.find(c => c.id === id); }
 /* ================= 身份与权限 ================= */
 const ROLE_KEY = 'coc_role_v1';
 let myRole = '';
-try{ myRole = localStorage.getItem(ROLE_KEY) || ''; }catch(e){}
+// 身份按标签页记忆：刷新不丢，同一浏览器的多个标签页可以一个当 KP、一个当玩家
+try{ myRole = sessionStorage.getItem(ROLE_KEY) || ''; }catch(e){}
 function isPlayer(){ return myRole === 'player'; }
 function renderRoleChip(){
   const b = $('role-chip');
@@ -784,7 +787,8 @@ function onSyncRoleChange(){ setRole($('sync-role').value, { silent:true }); }
 function setRole(role, opts){
   opts = opts || {};
   myRole = role === 'player' ? 'player' : 'kp';
-  try{ localStorage.setItem(ROLE_KEY, myRole); }catch(e){}
+  try{ sessionStorage.setItem(ROLE_KEY, myRole); }catch(e){}
+  try{ localStorage.removeItem(ROLE_KEY); }catch(e){}
   if($('sync-role')) $('sync-role').value = myRole;
   syncRoleUi();
   applyRoleUi();
@@ -1337,6 +1341,7 @@ function openStartCombat(){
     return { cid: c.id, dex: c.stats.DEX + (gun && gun.checked ? 50 : 0) };
   }).sort((a,b) => b.dex - a.dex);
   state.combat = { order, idx:0, round:1, acted:{} };
+  state.reacts = [];
   log('KP', KP_COLOR, `—— <b>战斗开始</b> —— 先攻顺序：${order.map(o=>esc(charById(o.cid).name)+'(DEX '+o.dex+')').join(' → ')}`, 'round');
   save(); renderCombat();
 }
@@ -1345,12 +1350,13 @@ function endCombat(){
   askConfirm('结束当前战斗？', '结束战斗').then(ok => {
     if(!ok) return;
     log('KP', KP_COLOR, '—— 战斗结束 ——', 'round');
-    state.combat = null; save(); renderCombat();
+    state.combat = null; state.reacts = []; save(); renderCombat();
     toast('战斗已结束，可重新选择参战者', 'ok');
   });
 }
 function renderCombat(){
   const setup = $('combat-setup'), run = $('combat-run'), wait = $('combat-wait');
+  renderPending();
   if(!state.combat){
     setup.style.display = ''; run.style.display = 'none';
     if(wait) wait.style.display = isPlayer() ? '' : 'none';
@@ -1594,7 +1600,7 @@ function openAttack(){
       <input id="atk-skill" list="dl-atk-skill" autocomplete="off" value="${esc(cItems[0].v)}" oninput="attackSkillSync()">
       <datalist id="dl-atk-skill">${cItems.map(i=>`<option value="${esc(i.v)}">${esc(i.label)}</option>`).join('')}</datalist></div>
     <div class="fld"><label>目标（${cur.kind==='npc'?'NPC 已随机选定，可手改':''}）</label>
-      <div class="row"><select id="atk-target" style="flex:1">${targets.map(c=>`<option value="${c.id}" ${c.id===defTarget.id?'selected':''}>${esc(c.name)}（HP ${c.hp.cur}/${c.hp.max}）</option>`).join('')}</select>
+      <div class="row"><select id="atk-target" style="flex:1">${targets.map(c=>`<option value="${c.id}" ${c.id===defTarget.id?'selected':''}>${esc(c.name)}${(isPlayer() && c.kind==='npc') ? '' : `（HP ${c.hp.cur}/${c.hp.max}）`}</option>`).join('')}</select>
       <button class="mini" onclick="randomAttackTarget()">🎲 随机</button></div></div>
     <div class="fld"><label>增减骰（狙击、暗处偷袭等 KP 裁定）</label><select id="atk-dice"><option value="0">无</option><option value="1">+1奖励骰</option><option value="2">+2奖励骰</option><option value="-1">-1惩罚骰</option><option value="-2">-2惩罚骰</option></select></div>
     <div class="fld"><label>战技（COC7 战斗技巧，选「无」为普通攻击）</label>
@@ -1658,19 +1664,25 @@ function attackNext(){
     return;
   }
   const t = charById(tid);
+  // 玩家攻击 NPC：NPC 的反击 / 闪避由 KP 决定，先入队等 KP 结算
+  if(isPlayer() && sync.on && t.kind === 'npc'){ queueNpcReact(atk, t); return; }
+  openReactionModal(atk, t);
+}
+function openReactionModal(atk, t){
+  const man = pending.man;
   if(['缴械','抓住','推搡','绊倒'].includes(man)){
     const mvOpts = man === '绊倒' ? ['敏捷','闪避','斗殴'] : ['斗殴','闪避'];
     openModal(`<h3>🤼 战技「${esc(man)}」 · ${esc(t.name)} 如何应对？</h3>
       <p class="muted">战技为对抗判定，不造成伤害；胜者施加效果。目标本轮已作出反应的话，攻击自动 +1 奖励骰（以多打少）。</p>
       <div class="fld"><label>目标应对技能</label><select id="mv-def">${mvOpts.map((k,i)=>`<option ${i===0?'selected':''}>${k}</option>`).join('')}</select></div>
-      <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="resolveManeuver()">结算</button></div>`);
+      <div class="btns"><button onclick="cancelReact()">取消</button><button class="primary" onclick="resolveManeuver()">结算</button></div>`);
     return;
   }
-  const w = findSpecial(atk, weapon) ? { ranged:false } : WEAPONS[weapon];
+  const w = findSpecial(atk, pending.weapon) ? { ranged:false } : WEAPONS[pending.weapon];
   if(w.ranged){
     openModal(`<h3>🎯 远程攻击 · ${esc(t.name)}</h3>
       <p class="muted">目标是否扑向掩体（掷闪避，成功则攻击者受 1 惩罚骰，且目标放弃本轮行动）？</p>
-      <div class="btns"><button onclick="resolveRanged(false)">否，原地挨打</button><button class="primary" onclick="resolveRanged(true)">是，扑掩体</button></div>`);
+      <div class="btns"><button onclick="cancelReact()">取消</button><button onclick="resolveRanged(false)">否，原地挨打</button><button class="primary" onclick="resolveRanged(true)">是，扑掩体</button></div>`);
   } else {
     const fightSkills = ['斗殴','剑','弓'].filter(k => valueOf(t,k) !== undefined && valueOf(t,k) > 0);
     const best = fightSkills.sort((a,b)=>valueOf(t,b)-valueOf(t,a))[0] || '斗殴';
@@ -1680,8 +1692,56 @@ function attackNext(){
       <div class="fld"><label>反击用技能（仅选反击时生效）</label><select id="rsp-skill">${['斗殴','剑','弓'].map(k=>`<option ${k===best?'selected':''}>${k}</option>`).join('')}</select></div>
       <div class="fld"><label>反击武器</label><select id="rsp-weapon">${Object.keys(WEAPONS).filter(k=>!WEAPONS[k].ranged).map(k=>`<option ${k==='徒手'?'selected':''}>${k}</option>`).join('')}</select></div>
       <p class="muted">注：目标本轮已闪避/反击过的话，攻击自动 +1 奖励骰（以多打少）。</p>
-      <div class="btns"><button onclick="closeModal()">取消</button><button class="primary" onclick="resolveMelee()">结算</button></div>`);
+      <div class="btns"><button onclick="cancelReact()">取消</button><button class="primary" onclick="resolveMelee()">结算</button></div>`);
   }
+}
+function cancelReact(){ pending = null; closeModal(); }
+function queueNpcReact(atk, t){
+  const item = Object.assign({}, pending, { qi: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2,6) });
+  state.reacts = state.reacts || [];
+  state.reacts.push(item);
+  const kind = item.man ? `战技「${esc(item.man)}」` : ((WEAPONS[item.weapon] && WEAPONS[item.weapon].ranged) ? '远程攻击' : '近战攻击');
+  log(atk.name, atk.color,
+    `⏳ 对 <b style="color:${t.color}">${esc(t.name)}</b> 的${kind}已提交，等待 KP 结算其应对${item.note?` <span class="rp">“${esc(item.note)}”</span>`:''}`,
+    'combat');
+  pending = null;
+  save(); renderChars(); renderCombat();
+  toast('已提交，等待 KP 结算 NPC 的应对', 'ok');
+}
+function finishReact(){
+  if(pending && pending.qi && state.reacts) state.reacts = state.reacts.filter(r => r.qi !== pending.qi);
+  pending = null;
+}
+function renderPending(){
+  const box = $('kp-pending'); if(!box) return;
+  const list = (!isPlayer() && state.reacts) ? state.reacts : [];
+  if(!list.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = '';
+  box.innerHTML = `<h3>待结算的 NPC 应对（${list.length}）</h3>` + list.map((r,i) => {
+    const a = charById(r.atkId), t = charById(r.tid);
+    if(!a || !t) return '';
+    return `<div class="row" style="margin-bottom:8px">
+      <span class="stat" style="flex:1;min-width:0;border:none;background:none">${esc(a.name)} → ${esc(t.name)}<span class="muted"> · ${esc(r.man || r.weapon)}</span></span>
+      <button class="primary mini" onclick="openPendingReact(${i})">结算应对</button>
+      <button class="mini danger" onclick="dropPendingReact(${i})">忽略</button>
+    </div>`;
+  }).join('');
+}
+function openPendingReact(i){
+  if(!requireKP()) return;
+  const it = (state.reacts || [])[i];
+  if(!it) return;
+  const atk = charById(it.atkId), t = charById(it.tid);
+  if(!atk || !t){ toastErr('相关角色已不存在'); return; }
+  pending = Object.assign({}, it);
+  openReactionModal(atk, t);
+}
+function dropPendingReact(i){
+  if(!requireKP()) return;
+  askConfirm('忽略这条待结算的攻击？不会造成任何伤害。', '忽略').then(ok => {
+    if(!ok) return;
+    state.reacts.splice(i, 1); save(); renderCombat();
+  });
 }
 function resolveMelee(){
   const atk = charById(pending.atkId), t = charById(pending.tid);
@@ -1731,6 +1791,7 @@ function resolveMelee(){
   log(atk.name, atk.color,
     `近战攻击 <b style="color:${t.color}">${esc(t.name)}</b>（${esc(wName)} · ${pending.skill} vs ${esc(dSkill)}${outnum?'，以多打少+1奖励骰':''}${manTxt}）<br>攻 ${rollHtml(ra)}　守 ${rollHtml(rd)}<br>→ ${result}${noteHtml}`,
     'combat');
+  finishReact();
   save(); renderChars(); renderCombat(); refreshSelects();
 }
 /* 战技对抗：缴械 / 抓住 / 推搡 / 绊倒 */
@@ -1774,6 +1835,7 @@ function resolveManeuver(){
   log(atk.name, atk.color,
     `战技「${esc(man)}」对 ${esc(t.name)}（${pending.skill} vs ${defKey}${outnum?'，以多打少+1奖励骰':''}）<br>攻 ${rollHtml(ra)}　守 ${rollHtml(rd)}<br>→ ${result}${noteHtml}`,
     'combat');
+  finishReact();
   save(); renderChars(); renderCombat();
 }
 function noteAttack(atk){
@@ -1818,6 +1880,7 @@ function resolveRanged(cover){
   log(atk.name, atk.color,
     `远程攻击 <b style="color:${t.color}">${esc(t.name)}</b>（${pending.skill} · ${pending.weapon}${aimTxt}）<br>${coverHtml}攻 ${rollHtml(ra)}<br>→ ${result}${noteHtml}`,
     'combat');
+  finishReact();
   save(); renderChars(); renderCombat(); refreshSelects();
 }
 function calcDamage(weaponKey, lv, char){
@@ -2058,6 +2121,7 @@ function switchTab(name){
   document.querySelectorAll('section').forEach(s => s.classList.remove('on'));
   $('tab-' + name).classList.add('on');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  try{ sessionStorage.setItem('coc_tab_v1', name); }catch(e){}
   // 切换时重渲染，保证导入新角色后名单即时可见
   if(name === 'chars') renderChars();
   if(name === 'check') refreshSelects();
@@ -2096,7 +2160,7 @@ function refreshSelects(){
 const SYNC_CFG_KEY = 'coc_sync_cfg_v1';
 let syncCfg = {};
 try{ syncCfg = JSON.parse(localStorage.getItem(SYNC_CFG_KEY) || '{}'); }catch(e){}
-let sync = { on:false, role:'kp', obj:null, live:null, timer:null, sdkReady:false, _last:null, _lastTs:0, mq:null, cid:'' };
+let sync = { on:false, role:'kp', obj:null, live:null, timer:null, sdkReady:false, _last:null, _lastTs:0, mq:null, cid:'', _ready:false };
 
 function loadScript(urls){
   return urls.reduce((p,u)=>p.catch(()=>new Promise((res,rej)=>{
@@ -2152,7 +2216,7 @@ function mqttConnect(f){
   syncStatus('⏳ 正在连接免注册线路（公共服务器）……');
   return loadMqtt().then(() => new Promise((resolve, reject) => {
     sync.cid = 'coc' + Math.random().toString(36).slice(2, 10);
-    sync.gotRemote = false; sync.pendingRemote = null; sync._lastTs = 0; sync._initDone = false; sync._last = null;
+    sync.gotRemote = false; sync.pendingRemote = null; sync._lastTs = 0; sync._initDone = false; sync._last = null; sync._ready = false;
     const mq = mqtt.connect(MQTT_URL, { clientId: sync.cid, keepalive: 30, reconnectPeriod: 4000, connectTimeout: 8000 });
     sync.mq = mq;
     let settled = false, joined = false;
@@ -2219,6 +2283,8 @@ function mqttConnect(f){
 }
 function mqttPush(force){
   if(!sync.on || !sync.mq) return Promise.resolve();
+  // 玩家在收到房间快照前不要回写，避免用本地的空/旧状态覆盖 KP 的进度
+  if(sync.role === 'player' && !sync._ready) return Promise.resolve();
   const doIt = () => {
     const body = JSON.stringify(Object.assign({}, state, { log: state.log.slice(-500) }));
     if(body === sync._last) return Promise.resolve();
@@ -2295,6 +2361,7 @@ function lcConnect(f){
 }
 function lcPush(force){
   if(!sync.on || !sync.obj) return Promise.resolve();
+  if(sync.role === 'player' && !sync._ready) return Promise.resolve();
   const doIt = ()=>{
     const payload = JSON.stringify(Object.assign({}, state, { log: state.log.slice(-500) }));
     if(payload === sync._last) return Promise.resolve();
@@ -2326,6 +2393,8 @@ function applyRemote(str){
     if(!s || !s.chars) return;
     state = s;
     if(!state.texts) state.texts = {};
+    if(!state.reacts) state.reacts = [];
+    sync._ready = true;
     renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderFeed();
     if(isPlayer()){
       const mc = myChar();
@@ -2407,6 +2476,11 @@ function init(){
   const hz = $('hz-skill');
   if(hz && !hz.innerHTML) hz.innerHTML = SKILLS.map(([k]) => `<option>${k}</option>`).join('');
   initRole();
+  // 刷新后回到上次所在的标签页，避免误以为进度丢了（玩家不恢复到 KP 专属页）
+  try{
+    const last = sessionStorage.getItem('coc_tab_v1');
+    if(last && $('tab-' + last) && !(isPlayer() && last === 'text')) switchTab(last);
+  }catch(e){}
   initSync();
   placeToastRoot();
 }
