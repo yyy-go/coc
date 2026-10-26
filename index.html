@@ -209,16 +209,16 @@
   /* ================= 铅字报章 · 视觉系统 =================
      纸张、油墨、细线、双线、直边。无圆角、无渐变、无投影。 */
   :root{
-    --paper:#EFEAE0; --paper-2:#F8F4E9; --paper-3:#F2EDE0;
-    --bg:#EFEAE0; --bg-deep:#E6E0D3;
-    --panel:#F8F4E9; --panel2:#EFE9DB; --panel3:#F2EDE0;
-    --ink:#171512; --dim:#57524A; --faint:#6F6759;
-    --rule:#A79B84; --rule-soft:#C9BFA9;
-    --red:#A32B1F; --red-deep:#7E1F16; --red-soft:#E4CFC9;
-    --line:#A79B84; --line-soft:#C9BFA9;
-    --amber:#A32B1F; --amber-deep:#7E1F16; --amber-dim:#E4CFC9;
-    --ok:#2F5B4A; --crit:#8A6A1F; --bad:#A32B1F; --fumble:#7E1F16; --info:#2C3B49;
-    --kp:#171512; --flee:#2C3B49; --pursue:#7C3B2A;
+    --paper:#F4F2EC; --paper-2:#FCFBF7; --paper-3:#EEECE5;
+    --bg:#F4F2EC; --bg-deep:#E8E5DD;
+    --panel:#FCFBF7; --panel2:#F4F2EA; --panel3:#EEECE5;
+    --ink:#16150F; --dim:#4C4942; --faint:#6B665B;
+    --rule:#B9B2A5; --rule-soft:#CFC9BD;
+    --red:#B23A2C; --red-deep:#8C2A1E; --red-soft:#EED9D4;
+    --line:#B9B2A5; --line-soft:#CFC9BD;
+    --amber:#B23A2C; --amber-deep:#8C2A1E; --amber-dim:#EED9D4;
+    --ok:#2E5A48; --crit:#8A6A1F; --bad:#B23A2C; --fumble:#8C2A1E; --info:#33414D;
+    --kp:#16150F; --flee:#33414D; --pursue:#7C4A33;
     --serif:"Songti SC","Source Han Serif SC","Noto Serif SC",SimSun,serif;
     --sans:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
     --mono:"Courier Prime","Courier New",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -227,10 +227,10 @@
   }
   *,*::before,*::after{border-radius:0!important}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.65}
-  ::selection{background:rgba(163,43,31,.18)}
+  ::selection{background:rgba(178,58,44,.16)}
 
   /* 报头 */
-  header{position:relative;background:var(--paper);border-top:6px solid var(--ink);border-bottom:1px solid var(--ink);padding:11px 22px 12px;gap:10px;backdrop-filter:none}
+  header{position:relative;background:var(--paper);border-top:4px solid var(--ink);border-bottom:1px solid var(--ink);padding:11px 22px 12px;gap:10px;backdrop-filter:none}
   header::after{content:'';position:absolute;left:0;right:0;bottom:3px;border-bottom:1px solid var(--ink);pointer-events:none}
   header h1{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.32em;color:var(--ink);padding:0;margin:0 18px 0 0;line-height:1.3}
   header h1::before{display:none}
@@ -264,7 +264,7 @@
 
   /* 字与线 */
   .muted{color:var(--dim);font-size:12px;line-height:1.75;font-family:var(--sans)}
-  input,select,textarea{background:#FCF8EE;border:1px solid var(--rule);border-radius:0;color:var(--ink);font-family:var(--sans);font-size:13px;box-shadow:none}
+  input,select,textarea{background:#FBF9F4;border:1px solid var(--rule);border-radius:0;color:var(--ink);font-family:var(--sans);font-size:13px;box-shadow:none}
   input:hover,select:hover,textarea:hover{border-color:var(--dim)}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
   input[type=checkbox]{accent-color:var(--red)}
@@ -301,11 +301,11 @@
   .char-head{gap:10px}
   .char-head b{font-family:var(--serif);font-size:17px;letter-spacing:.06em}
   .statline{gap:5px}
-  .stat{background:transparent;border:1px solid var(--rule-soft);border-radius:0;padding:2px 7px;font-size:11.5px;color:var(--dim)}
+  .stat{background:var(--paper-3);border:1px solid var(--rule);border-radius:0;padding:2px 7px;font-size:11.5px;color:var(--dim)}
   .stat b{color:var(--ink)}
   .vit label{font-size:12px;color:var(--dim)}
   .skills{gap:4px}
-  .sk{background:transparent;border:1px solid var(--rule-soft);border-radius:0;padding:1px 7px;font-size:11.5px;color:var(--dim)}
+  .sk{background:rgba(22,21,15,.05);border:none;border-radius:0;padding:1px 7px;font-size:11.5px;color:var(--dim)}
   .sk b{color:var(--ink)}
 
   /* 先攻标签 */
@@ -324,11 +324,12 @@
   .lg .t{font-family:var(--mono);font-size:10.5px;letter-spacing:0;color:var(--faint);margin-right:8px;font-variant-numeric:tabular-nums}
   .lg .who{font-family:var(--sans);font-size:12px;letter-spacing:.08em;font-weight:600}
   .lg.san{border-left-color:var(--red)}
-  .lg.combat{border-left-color:var(--ink)}
-  .lg.chase{border-left-color:var(--flee)}
+  .lg.combat{border-left-color:var(--c,var(--ink))}
+  .lg.chase{border-left-color:var(--c,var(--flee))}
   .lg.round{display:flex;align-items:center;gap:12px;border-left:none;padding:0;margin:22px 0;
     text-align:center;color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.18em}
-  .lg.round::before,.lg.round::after{content:'';flex:1;border-top:1px solid var(--rule)}
+  .lg.round::before,.lg.round::after{content:'';flex:1 1 24px;border-top:1px solid var(--rule)}
+  .lg.round .rd-txt{flex:1 1 auto;min-width:0;padding:0 10px}
   .lg .dice{font-family:var(--mono);font-size:13px}
   .lg .rp{font-style:italic;color:var(--dim)}
   /* 场外发言：括号内文字 */
@@ -336,9 +337,9 @@
     background:rgba(23,21,18,.045);border-bottom:1px dotted var(--rule);padding:0 2px;letter-spacing:.02em}
 
   /* 实时输出：报尾小条 */
-  #live-feed{background:rgba(248,244,233,.97);backdrop-filter:blur(10px);border:1px solid var(--ink);
+  #live-feed{background:rgba(252,251,247,.97);backdrop-filter:blur(10px);border:1px solid var(--ink);
     box-shadow:0 14px 34px -26px rgba(23,21,18,.7)}
-  .feed-head{background:var(--paper-3);border-bottom:1px solid var(--rule);padding:7px 14px}
+  .feed-head{background:var(--paper-2);border-bottom:1px solid var(--rule);padding:7px 14px}
   .feed-head b{font-family:var(--serif);letter-spacing:.16em;color:var(--ink);font-size:13px}
   .feed-head b::before{width:6px;height:6px;border-radius:0;background:var(--red);box-shadow:none;animation:none}
   .feed-body{padding:10px 14px}
@@ -709,9 +710,9 @@ const WEAPONS = {
 const SKILL_WEAPON = {'斗殴':'徒手','剑':'剑','弓':'弓','手枪':'手枪','步枪/猎枪':'步枪','霰弹枪':'霰弹枪','冲锋枪':'冲锋枪'};
 const BOUTS = ['失忆症：忘记进入危险地点后的全部记忆','心理性残障：暂时失明/失聪/肢体瘫痪','暴力倾向：陷入无差别打砸的狂暴','妄想偏执：认定所有人都在针对自己','重要之人：把在场者错认成自己生命中的重要之人','晕厥：当场昏倒','恐慌逃窜：不顾一切逃离现场','歇斯底里：大笑/痛哭/尖叫无法自控','恐惧症：获得一项新的恐惧症','狂躁症：获得一项新的狂躁症'];
 const LEVEL_NAMES = ['大失败','失败','普通成功','困难成功','极难成功','大成功'];
-const PALETTE = ['#0F5E74','#C0392B','#2E8B57','#7D3C98','#B9770E','#2471A3','#C2185B','#4A5E8C','#1F7A6B','#8E5B2E'];
-const NPC_COLOR = '#6B7280';
-const KP_COLOR = '#6E2B1E';
+const PALETTE = ['#2F5A65','#9A4437','#3A6B50','#6B5075','#8C6A2E','#3A5C7D','#9A4A62','#4F5A70','#33695F','#74543A'];
+const NPC_COLOR = '#6B675C';
+const KP_COLOR = '#8C2A1E';
 // 玩家角色色：前 10 个用手挑色板，超出后按黄金角生成，保证人数再多也不重色
 function pcColorAt(i){
   if(i < PALETTE.length) return PALETTE[i];
@@ -743,7 +744,14 @@ function load(){
   state.chars.forEach(c => { c.color = c.kind === 'npc' ? NPC_COLOR : pcColorAt(pi++); });
   const colorByName = {};
   state.chars.forEach(c => { colorByName[c.name] = c.color; });
-  state.log.forEach(e => { if(colorByName[e.actor]) e.color = colorByName[e.actor]; });
+  const OLD_NPC = '#6B7280';
+  state.log.forEach(e => {
+    if(colorByName[e.actor]) e.color = colorByName[e.actor];
+    else if(e.actor === 'KP') e.color = KP_COLOR;
+    else if(e.actor === '系统' || e.actor === '对抗') e.color = '#33414D';
+    else if(e.color === OLD_NPC) e.color = NPC_COLOR;
+    if(e.html) e.html = e.html.replace(/#6B7280/g, NPC_COLOR).replace(/#6E2B1E/g, KP_COLOR);
+  });
 }
 
 /* ================= 战斗文案自定义 ================= */
@@ -1267,9 +1275,10 @@ function log(actor, color, html, cls){
 }
 function renderLog(){
   const v = $('log-view');
-  v.innerHTML = state.log.map(e =>
-    `<p class="lg ${e.cls}" style="--c:${e.color}"><span class="t">${e.t}</span><span class="who">${esc(e.actor)}</span>　${e.html}</p>`
-  ).join('') || '<span class="muted">暂无记录。导入角色后开始跑团吧。</span>';
+  v.innerHTML = state.log.map(e => {
+    if(e.cls === 'round') return `<p class="lg round" style="--c:${e.color}"><span class="rd-txt">${e.html.replace(/——/g,'')}</span></p>`;
+    return `<p class="lg ${e.cls}" style="--c:${e.color}"><span class="t">${e.t}</span><span class="who">${esc(e.actor)}</span>　${e.html}</p>`;
+  }).join('') || '<span class="muted">暂无记录。导入角色后开始跑团吧。</span>';
   v.scrollTop = v.scrollHeight;
 }
 // 全角括号（）内的内容识别为场外发言（OOC）
