@@ -397,6 +397,33 @@
   #log-view::-webkit-scrollbar,.feed-body::-webkit-scrollbar,.modal::-webkit-scrollbar{width:10px}
   #log-view::-webkit-scrollbar-thumb,.feed-body::-webkit-scrollbar-thumb,.modal::-webkit-scrollbar-thumb{background:var(--rule);border-radius:0;border:none}
   #log-view::-webkit-scrollbar-thumb:hover,.feed-body::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+
+  /* 长眠录：一排排讣闻卡 */
+  #tab-memorial{padding-bottom:76px}
+  .mem-pending{background:var(--paper-3);border:1px solid var(--rule);border-left:3px solid var(--c,var(--ink));padding:6px 10px;margin-bottom:6px}
+  .mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:14px}
+  .mem-card{position:relative;background:var(--paper-2);border:1px solid var(--rule);border-top:3px solid var(--c,var(--ink));padding:10px;cursor:pointer}
+  .mem-card:hover{border-color:var(--ink);border-top-color:var(--c,var(--ink))}
+  .mem-card:hover .mem-name{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+  .mem-photo{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;filter:grayscale(1) contrast(1.06);border:1px solid var(--rule);background:var(--paper-3)}
+  .mem-noph{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1/1;border:1px dotted var(--rule);color:var(--faint);font-family:var(--mono);font-size:10px;letter-spacing:.3em;background:var(--paper-3)}
+  .mem-name{font-family:var(--serif);font-size:15px;letter-spacing:.14em;color:var(--ink);margin:9px 0 3px;overflow-wrap:anywhere}
+  .mem-meta{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--faint);line-height:1.7}
+  .mem-quote{font-family:var(--serif);font-size:12.5px;line-height:1.8;color:var(--dim);margin-top:7px;padding-left:8px;border-left:2px solid var(--rule);white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .mem-wood{display:flex;align-items:baseline;gap:6px;margin-top:9px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);border-top:1px solid var(--rule-soft);padding-top:7px}
+  .mem-wood b{color:var(--red);font-size:12px}
+  .mem-empty{background:var(--paper-2);border:1px solid var(--rule);padding:42px 20px;text-align:center;font-family:var(--serif);font-size:15px;line-height:2.1;letter-spacing:.18em;color:var(--dim)}
+  .mem-detail{display:flex;gap:20px;align-items:flex-start}
+  .mem-shot{width:216px;flex:none}
+  .mem-shot .mem-photo,.mem-shot .mem-noph{width:216px;height:216px;aspect-ratio:auto}
+  .mem-body{flex:1;min-width:0}
+  .mem-title{font-family:var(--serif);font-size:26px;letter-spacing:.14em;color:var(--ink);line-height:1.3}
+  .mem-rule{width:44px;height:2px;background:var(--c,var(--red));margin:9px 0 10px}
+  .mem-lines{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--faint);line-height:1.9}
+  .mem-epitaph{font-family:var(--serif);font-size:15px;line-height:1.95;color:var(--dim);border-left:2px solid var(--red);padding:2px 0 2px 14px;margin:14px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+  .mem-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .mem-note{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--faint)}
+  @media(max-width:620px){.mem-detail{flex-direction:column}.mem-shot,.mem-shot .mem-photo,.mem-shot .mem-noph{width:100%;height:auto}.mem-shot .mem-photo,.mem-shot .mem-noph{aspect-ratio:1/1}}
 </style>
 </head>
 <body>
@@ -440,6 +467,7 @@
   <button class="tab-btn" data-tab="log" onclick="switchTab('log')"><i class="tab-no">05</i>日志</button>
   <button class="tab-btn kp-only" data-tab="text" onclick="switchTab('text')"><i class="tab-no">06</i>文案</button>
   <button class="tab-btn" data-tab="sync" onclick="switchTab('sync')"><i class="tab-no">07</i>云同步</button>
+  <button class="tab-btn" data-tab="memorial" onclick="switchTab('memorial')"><i class="tab-no">08</i>长眠录</button>
 </nav>
 <div class="sync-banner" id="sync-banner"></div>
 <main>
@@ -654,6 +682,15 @@
   </div>
 </section>
 
+<section id="tab-memorial">
+  <div class="panel">
+    <h3>长眠录</h3>
+    <p class="muted">阵亡调查员纪念碑。点开其中一位，为他上香、写遗言。愿此页常空。</p>
+    <div id="burial-pending"></div>
+  </div>
+  <div id="memorial-list"></div>
+</section>
+
 </main>
 <div id="live-feed"></div>
 <div id="modal-root"></div>
@@ -739,6 +776,7 @@ function load(){
   if(!state.log) state.log = [];
   if(!state.texts) state.texts = {};
   if(!state.reacts) state.reacts = [];
+  if(!state.memorial) state.memorial = [];
   // 统一角色配色：玩家各自不同色，NPC 全部同一个色；旧存档一并迁移
   let pi = 0;
   state.chars.forEach(c => { c.color = c.kind === 'npc' ? NPC_COLOR : pcColorAt(pi++); });
@@ -2423,7 +2461,7 @@ function importSaveFile(input){
       const s = JSON.parse(r.result);
       if(!s.chars) throw 0;
       state = s; save();
-      renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects();
+      renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderMemorial();
       toast('存档已恢复', 'ok');
     }catch(e){ toastErr('存档文件无效，请确认是本工具导出的 JSON 存档'); }
     input.value = '';
@@ -2435,10 +2473,130 @@ function clearAll(){
   askConfirm('清空全部角色与日志？此操作不可撤销（建议先导出存档）', '清空').then(ok => {
     if(!ok) return;
     localStorage.removeItem('coc_tool_v1');
-    state = { chars:[], log:[], combat:null, chase:null, texts:{} };
-    renderChars(); renderLog(); renderFeed(); renderCombat(); renderChase(); refreshSelects();
+    state = { chars:[], log:[], memorial:[], combat:null, chase:null, texts:{} };
+    renderChars(); renderLog(); renderFeed(); renderCombat(); renderChase(); refreshSelects(); renderMemorial();
     toast('已清空全部数据', 'ok');
   });
+}
+
+/* ================= 长眠录 ================= */
+function memorials(){ if(!state.memorial) state.memorial = []; return state.memorial; }
+function buriedOf(cid){ return memorials().find(m => m.cid === cid); }
+function fmtMoment(ts){
+  if(!ts) return '';
+  const d = new Date(ts), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function renderMemorial(){
+  const pend = $('burial-pending'), list = $('memorial-list');
+  if(!pend || !list) return;
+  const dead = state.chars.filter(c => c.kind === 'pc' && c.hp.cur === 0 && !buriedOf(c.id) && (!isPlayer() || c.id === myCharId()));
+  pend.innerHTML = dead.length
+    ? `<div class="muted" style="margin-bottom:6px">待安葬</div>` + dead.map(c => `<div class="mem-pending row" style="--c:${c.color}">
+        <span style="color:var(--c);font-family:var(--serif);letter-spacing:.12em">${esc(c.name)}</span>
+        <span class="mem-note">已倒下 · ${c._major ? '濒死' : '昏迷'}</span>
+        <span class="spacer"></span>
+        <button class="mini" onclick="buryChar('${c.id}')">安葬</button></div>`).join('')
+    : '';
+  const ms = memorials();
+  list.innerHTML = ms.length
+    ? `<div class="mem-grid">${ms.map(m => `
+      <div class="mem-card" style="--c:${m.color}" onclick="openMemorial('${m.id}')">
+        ${m.portrait ? `<img class="mem-photo" src="${m.portrait}" alt="${esc(m.name)}">` : `<div class="mem-noph">无 遗 照</div>`}
+        <div class="mem-name">${esc(m.name)}</div>
+        <div class="mem-meta">${m.round ? '第 ' + m.round + ' 轮倒下' : '场外长眠'} · ${fmtMoment(m.diedAt).slice(5)}</div>
+        ${m.epitaph ? `<div class="mem-quote">${esc(m.epitaph)}</div>` : ''}
+        <div class="mem-wood"><span>香火</span><b>${m.incense || 0}</b></div>
+      </div>`).join('')}</div>`
+    : `<div class="mem-empty">长眠录尚空。<br>愿它一直空着。</div>`;
+}
+function buryChar(cid){
+  const c = charById(cid); if(!c) return;
+  if(buriedOf(cid)){ toastErr('这位调查员已经安葬了'); return; }
+  if(c.hp.cur > 0){ toastErr('只有倒下的调查员才能安葬'); return; }
+  if(isPlayer() && c.id !== myCharId()){ toastErr('只能安葬自己的角色，其他调查员请由 KP 安葬'); return; }
+  askConfirm(`将 ${c.name} 安葬进长眠录？之后可以为他上传遗照、写上遗言。`, '安葬').then(ok => {
+    if(!ok) return;
+    memorials().push({ id: uid(), cid: c.id, name: c.name, color: c.color, portrait: '', epitaph: '',
+      round: state.combat ? state.combat.round : 0, diedAt: Date.now(), incense: 0, lastIncense: 0,
+      vit: { hp: c.hp.max, san: c.san.max } });
+    log('系统', '#33414D', `<b>${esc(c.name)}</b> 长眠于此 —— 安葬入长眠录`, '');
+    save(); renderMemorial(); renderLog();
+    toast(c.name + ' 已安葬入长眠录', 'ok');
+  });
+}
+function openMemorial(id){
+  const m = memorials().find(x => x.id === id); if(!m) return;
+  const kp = !isPlayer();
+  openModal(`<h3>长眠录 · ${esc(m.name)}</h3>
+    <div class="mem-detail" style="--c:${m.color}">
+      <div class="mem-shot">
+        ${m.portrait ? `<img class="mem-photo" src="${m.portrait}" alt="${esc(m.name)}">` : `<div class="mem-noph">无 遗 照</div>`}
+        <button class="mini" style="width:100%;margin-top:8px" onclick="document.getElementById('pf-${m.id}').click()">上传大头照</button>
+        <input id="pf-${m.id}" type="file" accept="image/*" style="display:none" onchange="pickPortrait('${m.id}', this)">
+      </div>
+      <div class="mem-body">
+        <div class="mem-title">${esc(m.name)}</div>
+        <div class="mem-rule"></div>
+        <div class="mem-lines">${m.round ? '倒下于第 ' + m.round + ' 轮' : '场外长眠'} · ${fmtMoment(m.diedAt)}<br>${m.vit ? `终末数值　HP ${m.vit.hp} ／ SAN ${m.vit.san}` : ''}</div>
+        <div class="mem-epitaph">${m.epitaph ? esc(m.epitaph) : '（尚未留下遗言）'}</div>
+        <div class="fld" style="margin-bottom:8px"><label>遗言</label>
+          <textarea id="ep-${m.id}" rows="3" placeholder="写下最后一句话，或替同伴代笔……">${esc(m.epitaph || '')}</textarea></div>
+        <div class="mem-tools">
+          <button class="primary" onclick="saveEpitaph('${m.id}')">记下遗言</button>
+          <button onclick="burnIncense('${m.id}')">上香　<b style="color:var(--red);font-family:var(--mono)">${m.incense || 0}</b></button>
+          <span class="mem-note">${m.lastIncense ? '最近上香 ' + fmtMoment(m.lastIncense).slice(5) : '尚无人上香'}</span>
+          <span class="spacer"></span>
+          ${kp ? `<button class="mini danger" onclick="removeMemorial('${m.id}')">移出长眠录</button>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="btns"><button onclick="closeModal()">关闭</button></div>`);
+}
+function saveEpitaph(id){
+  const m = memorials().find(x => x.id === id); if(!m) return;
+  const el = $('ep-' + id); if(!el) return;
+  m.epitaph = el.value.trim().slice(0, 600);
+  save(); renderMemorial(); openMemorial(id);
+  toast('遗言已记下', 'ok');
+}
+function burnIncense(id){
+  const m = memorials().find(x => x.id === id); if(!m) return;
+  m.incense = (m.incense || 0) + 1; m.lastIncense = Date.now();
+  save(); renderMemorial(); openMemorial(id);
+  toast('上香　香火 ' + m.incense, 'ok');
+}
+function removeMemorial(id){
+  if(!requireKP()) return;
+  const m = memorials().find(x => x.id === id); if(!m) return;
+  askConfirm(`将 ${m.name} 移出长眠录？已上传的遗照与遗言会一并删除。`, '移出').then(ok => {
+    if(!ok) return;
+    state.memorial = memorials().filter(x => x.id !== id);
+    save(); renderMemorial(); closeModal();
+    toast('已移出长眠录', 'ok');
+  });
+}
+function pickPortrait(id, input){
+  const f = input.files && input.files[0]; input.value = '';
+  if(!f) return;
+  if(!/^image\//.test(f.type)){ toastErr('请选择图片文件'); return; }
+  if(f.size > 12 * 1024 * 1024){ toastErr('图片太大了，请换一张（12MB 以内）'); return; }
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    const S = 320;
+    const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+    const g = cv.getContext('2d');
+    const side = Math.min(img.width, img.height);
+    g.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    const m = memorials().find(x => x.id === id); if(!m) return;
+    m.portrait = cv.toDataURL('image/jpeg', 0.82);
+    save(); renderMemorial(); openMemorial(id);
+    toast('遗照已更新', 'ok');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toastErr('图片读取失败'); };
+  img.src = url;
 }
 
 /* ================= Tab 与选择器 ================= */
@@ -2454,6 +2612,7 @@ function switchTab(name){
   if(name === 'chase') renderChase();
   if(name === 'log') renderLog();
   if(name === 'text') renderTextCfg();
+  if(name === 'memorial') renderMemorial();
 }
 function fillSample(){ $('import-text').value = SAMPLE_CARD; }
 function charOptions(sel){
@@ -2494,13 +2653,13 @@ function maybeResetRoom(room){
   let last = '';
   try{ last = localStorage.getItem(k) || ''; }catch(e){}
   if(last && last !== room){
-    state = { chars: [], log: [], combat: null, chase: null, texts: {}, reacts: [] };
+    state = { chars: [], log: [], memorial: [], combat: null, chase: null, texts: {}, reacts: [] };
     try{
       sessionStorage.removeItem('coc_my_char_' + last);
       localStorage.setItem('coc_tool_v1', JSON.stringify(state));
     }catch(e){}
     sync._ready = false; sync._last = null; sync._announced = false; sync._seenJoin = ''; sync._defReq = 0;
-    renderChars(); renderLog(); renderFeed(); renderCombat(); renderChase(); refreshSelects();
+    renderChars(); renderLog(); renderFeed(); renderCombat(); renderChase(); refreshSelects(); renderMemorial();
     toast('已切换到房间 ' + room + '，本地内容已重置', 'ok');
   }
   try{ localStorage.setItem(k, room); }catch(e){}
@@ -2761,8 +2920,9 @@ function applyRemote(str){
     state = s;
     if(!state.texts) state.texts = {};
     if(!state.reacts) state.reacts = [];
+    if(!state.memorial) state.memorial = [];
     sync._ready = true;
-    renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderFeed();
+    renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderFeed(); renderMemorial();
     // 有人进入房间：提示一次
     const joins = (state.log || []).filter(e => e.cls === 'join' && e.jid);
     const lastJoin = joins.length ? joins[joins.length - 1] : null;
@@ -2853,7 +3013,7 @@ function initRole(){
 }
 function init(){
   load();
-  renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderFeed(); renderTextCfg();
+  renderChars(); renderLog(); renderCombat(); renderChase(); refreshSelects(); renderFeed(); renderTextCfg(); renderMemorial();
   ['qc-char','oc-a','oc-b'].forEach(id => {
     const el = $(id); if(!el || el.dataset.wired) return;
     el.dataset.wired = '1';
